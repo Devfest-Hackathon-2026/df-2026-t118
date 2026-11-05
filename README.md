@@ -2,6 +2,8 @@
 
 ブックマークを構造化し、次にとるべきアクションの提案・準備までを行う自律エージェント。Google ハッカソン参加作品。
 
+> **初めての人は [docs/onboarding.md](docs/onboarding.md) から読んでください。** 環境の用意から1日の流れまで、これ1枚で始められます。
+
 - 要件: [docs/requirements.md](docs/requirements.md)
 - アーキテクチャ: [docs/architecture.md](docs/architecture.md)
 - 技術選定: [docs/tech-selection.md](docs/tech-selection.md) / [docs/decisions/](docs/decisions)
@@ -40,6 +42,7 @@ git push -u origin feat/<topic>
 |---|---|
 | `AGENTS.md` | AI エージェント共通ルール（`CLAUDE.md` / `GEMINI.md` から参照） |
 | `scripts/check.sh` | 検証の門（機密情報・lint・型・ビルド・テスト） |
+| `docs/onboarding.md` | メンバーが最初に読む導入 |
 | `docs/workflow.md` | イシュー・PR・レビュー・自動実行の運用 |
 | `docs/requirements.md` | 要件定義 |
 | `docs/architecture.md` | 構成図・処理フロー・担当 |
