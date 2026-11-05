@@ -15,7 +15,8 @@ Codespaces（推奨）: **Code → Codespaces → Create codespace on main**
 ```bash
 git clone https://github.com/Kambara-Michiru/hannari-hustlers.git
 cd hannari-hustlers
-cp .env.example .env   # 値はチームのチャットで共有
+cp .env.example .env            # 値はチームのチャットで共有
+git config core.hooksPath .githooks   # push 前に check を通す（Codespaces では自動）
 ```
 
 ## 開発フロー
@@ -23,6 +24,7 @@ cp .env.example .env   # 値はチームのチャットで共有
 詳細は [docs/workflow.md](docs/workflow.md)。
 
 - `main` への直接 push は禁止。`feat/*` / `fix/*` / `docs/*` でブランチを切り、PR を出す
+- 検証は `bash scripts/check.sh` の1コマンド。人もAIもCIも同じ門を通る
 - PR には CI（`check`）と Gemini Code Assist のレビューが走る
 - Claude Code / Gemini CLI などの AI エージェントは [AGENTS.md](AGENTS.md) のルールに従う
 - 不在時の一括実行（レビュー・マージ・実装）は `/sleep`
@@ -37,6 +39,7 @@ git push -u origin feat/<topic>
 | パス | 内容 |
 |---|---|
 | `AGENTS.md` | AI エージェント共通ルール（`CLAUDE.md` / `GEMINI.md` から参照） |
+| `scripts/check.sh` | 検証の門（機密情報・lint・型・ビルド・テスト） |
 | `docs/workflow.md` | イシュー・PR・レビュー・自動実行の運用 |
 | `docs/requirements.md` | 要件定義 |
 | `docs/architecture.md` | 構成図・処理フロー・担当 |
@@ -45,6 +48,9 @@ git push -u origin feat/<topic>
 | `.devcontainer/` | 開発環境定義（Codespaces / Dev Containers 共通） |
 | `.github/workflows/ci.yml` | CI |
 | `.gemini/` | Gemini Code Assist のレビュー設定 |
+| `.githooks/pre-push` | push 前に check を通す git hook |
+| `.claude/settings.json` | エージェントのガードレール（deny / ask） |
+| `.claude/agents/reviewer.md` | レビュー専門サブエージェント（`@reviewer`） |
 | `.claude/commands/sleep.md` | `/sleep`（不在時の一括実行）の定義 |
 | `.claude/sleep/` | `/sleep` の役割別手順 |
 | `.claude/shared/rules.md` | マージ条件・レビュー観点・状態ラベル |

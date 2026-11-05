@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# push の前に check を通す。有効化: git config core.hooksPath .githooks
+# 緊急時は git push --no-verify で抜けられる（抜けても CI で捕まる）。
+exec bash "$(git rev-parse --show-toplevel)/scripts/check.sh"

@@ -20,7 +20,42 @@
 
 - PR には CI（`check`）と Gemini Code Assist のレビューが走る
 - 人間のレビューは「レビュー観点」（`.claude/shared/rules.md`）の順で見る。スタイルの好みは指摘しない
+- 手元でAIにレビューさせる場合は `@reviewer`（定義: `.claude/agents/reviewer.md`）を使う。観点が揃い、親の文脈も汚れない
 - `main` は private + GitHub Free のためブランチ保護が効かない。マージ条件は GitHub ではなく各自が確認する
+
+## 検証：1コマンドの門
+
+人もAIもCIも、同じ `bash scripts/check.sh` を通す。
+
+```bash
+bash scripts/check.sh
+```
+
+- 中身は「機密情報がコミットされていないか」＋ 検出したスタックの lint・型・ビルド・テスト
+- チェックを増やすときは `scripts/check.sh` を編集する。CI 側は編集しない（CI はツールチェーンを用意して check を呼ぶだけ）
+- **完了の定義は「check がすべて通ること」**。タスク固有の条件も、できる限りテストにして check に入れる
+- push 前に自動で通したい場合は git hook を有効化する（Codespaces / Dev Containers では自動で有効）
+
+```bash
+git config core.hooksPath .githooks
+```
+
+門は3段階に置いてある。内側ほど速く、外側ほど確実に止まる。
+
+| 層 | 仕組み | 強制力 |
+| --- | --- | --- |
+| エージェント | `.claude/settings.json` の deny / ask | 迂回できるが即座 |
+| リポジトリ | `.githooks/pre-push` → check | `--no-verify` で抜けられる |
+| リモート | CI（`check`） | 抜けられない |
+
+## エージェントのガードレール
+
+`.claude/settings.json`（コミット済み。clone すれば全員に効く）で、危険な操作を機械的に止めている。
+
+- deny（実行できない）: `rm -rf`、`git push --force`、`.env` の読み取り
+- ask（人間の承認が必要）: ブランチ削除、`git reset --hard`、クラウドリソースの削除
+
+Bash のパターン一致は万能ではないため、これは最後の砦ではなく事故防止です。ルール本体は `AGENTS.md` にあります。
 
 ## 状態ラベル
 
