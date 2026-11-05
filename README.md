@@ -27,7 +27,7 @@ git config core.hooksPath .githooks   # push 前に check を通す（Codespaces
 - 検証は `bash scripts/check.sh` の1コマンド。人もAIもCIも同じ門を通る
 - PR には CI（`check`）と Gemini Code Assist のレビューが走る
 - Claude Code / Gemini CLI などの AI エージェントは [AGENTS.md](AGENTS.md) のルールに従う
-- 不在時の一括実行（レビュー・マージ・実装）は `/sleep`
+- PRレビューは `/review`（投稿前に確認あり）、不在時の一括実行は `/sleep`（確認なし）
 
 ```bash
 git switch -c feat/<topic>
@@ -51,6 +51,7 @@ git push -u origin feat/<topic>
 | `.githooks/pre-push` | push 前に check を通す git hook |
 | `.claude/settings.json` | エージェントのガードレール（deny / ask） |
 | `.claude/agents/reviewer.md` | レビュー専門サブエージェント（`@reviewer`） |
+| `.claude/commands/review.md` | `/review`（対話版のPRレビュー）の定義 |
 | `.claude/commands/sleep.md` | `/sleep`（不在時の一括実行）の定義 |
 | `.claude/sleep/` | `/sleep` の役割別手順 |
 | `.claude/shared/rules.md` | マージ条件・レビュー観点・状態ラベル |

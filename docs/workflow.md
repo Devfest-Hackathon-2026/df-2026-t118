@@ -20,7 +20,8 @@
 
 - PR には CI（`check`）と Gemini Code Assist のレビューが走る
 - 人間のレビューは「レビュー観点」（`.claude/shared/rules.md`）の順で見る。スタイルの好みは指摘しない
-- 手元でAIにレビューさせる場合は `@reviewer`（定義: `.claude/agents/reviewer.md`）を使う。観点が揃い、親の文脈も汚れない
+- 手元でAIにレビューさせる場合は `/review`（定義: `.claude/commands/review.md`）。イシューと照らし、指摘を提示してから、**許可を得て**投稿する。指摘が0件ならそのままマージする
+- 差分だけ見てほしいときは `@reviewer`（定義: `.claude/agents/reviewer.md`）。投稿はせず指摘を返すだけ
 - `main` は private + GitHub Free のためブランチ保護が効かない。マージ条件は GitHub ではなく各自が確認する
 
 ## 検証：1コマンドの門

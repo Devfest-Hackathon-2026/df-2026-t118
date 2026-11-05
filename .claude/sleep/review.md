@@ -18,13 +18,15 @@
    ```
 3. 差分が大きい、または実際に動かさないと判断できない場合は worktree を作って確認する。小さな差分（ドキュメントのみ、数十行）なら diff だけで判断してよい。
    ```bash
-   git fetch origin <ブランチ名>
-   git worktree add ../hannari-review-<番号> origin/<ブランチ名>
+   git fetch origin pull/<番号>/head:pr-<番号>-review
+   git worktree add ../hannari-review-<番号> pr-<番号>-review
    ```
-   確認が終わったら必ず削除する（`git worktree remove ../hannari-review-<番号>`）。
+   `pull/<番号>/head` を使うのは、fork からのPRでも取得できるため。
+   worktree を作ったら検証も通す（`bash scripts/check.sh`）。
+   確認が終わったら必ず削除する（`git worktree remove ../hannari-review-<番号>`、ブランチ `pr-<番号>-review` も削除）。
 4. レビュー観点の順に見る。要件・ADR との整合は `docs/requirements.md` と `docs/decisions/` を参照して判断する。
-5. レビューを投稿する。日本語で、指摘ごとに「問題となる理由」と「修正方針」を添える。
-   - 指摘がある場合: `gh pr review <番号> --comment --body "<本文>"`（`--request-changes` は使わない。作成者が不在のため、ブロックせずコメントで残す）
+5. レビューを投稿する。日本語で、指摘は `.claude/shared/rules.md` の「指摘の書き方」に従う。
+   - 指摘がある場合: 行コメント付きで1つのレビューとして投稿する（`rules.md` の投稿例）。`--request-changes` は使わない（作成者が不在のため、ブロックせずコメントで残す）
    - 指摘がない場合: `gh pr review <番号> --approve --body "<総評>"`
 6. **指摘がない場合のみ**、`.claude/shared/rules.md` のマージ条件を確認し、満たしていればマージする。
    ```bash
