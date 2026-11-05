@@ -8,8 +8,14 @@
 
 ## はじめに（メンバー向け）
 
-1. このリポジトリを開き、**Code → Codespaces → Create codespace** を押す（環境が自動でそろいます）
-   - 手元のPCでやる場合は、VS Code の Dev Containers 拡張で開く
+リポジトリ： https://github.com/Kambara-Michiru/hannari-hustlers （private）
+
+1. 上のリポジトリを開き、**Code → Codespaces → Create codespace on main** を押す（環境が自動でそろいます。ブラウザだけで始められます）
+   - 手元のPCでやる場合は、clone してから VS Code の Dev Containers 拡張で開く
+     ```bash
+     git clone https://github.com/Kambara-Michiru/hannari-hustlers.git
+     cd hannari-hustlers
+     ```
 2. `.env.example` をコピーして `.env` を作り、チャットで共有された値を入れる
    ```bash
    cp .env.example .env
@@ -43,11 +49,14 @@
 
 ### GitHub
 
-- [ ] このフォルダの中身で新しいリポジトリを作り、最初のコミットを push
+- [x] このフォルダの中身で新しいリポジトリを作り、最初のコミットを push
   （**.gitignore が入った状態で最初のコミットをすること**）
-- [ ] メンバーを招待（Settings → Collaborators）
+- [ ] メンバーを招待（Settings → Collaborators → Add people）
 - [ ] [Gemini Code Assist](https://github.com/apps/gemini-code-assist) をインストールし、このリポジトリを選択
 - [ ] ブランチ保護（Settings → Rules → Rulesets → New branch ruleset）
+  - ⚠️ **private + GitHub Free では使えません**（`Upgrade to GitHub Pro or make this repository public`）。
+    Public にするか Pro にするまでは、ルールで縛らず「main に直接 push しない」運用で守る
+  - 使えるようになったら設定する内容：
   - 対象：`main`（Target branches → Include default branch）
   - Enforcement status：**Active**
   - ✅ Restrict deletions（ブランチ削除禁止）
