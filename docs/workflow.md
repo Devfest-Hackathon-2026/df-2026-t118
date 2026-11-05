@@ -8,12 +8,17 @@
 - 依存があれば本文に `前提: #12、#15` の行を1行で書く。この行は自動化が読む
 - 親子関係を示すだけの場合は `親イシュー: #3` と書く（依存とは扱われない）
 - 受け入れ条件を箇条書きで書く（何ができたら閉じられるか）
+- 優先度は `priority::high` / `medium` / `low` のラベルで示す（任意。次にやるタスクの判断に使う）
+
+着手は `/task`（定義: `.claude/commands/task.md`）。着手可能なイシューを前提から判定し、**次にやるべき1つを理由つきで提案**してから実装に入る。選び方は「着手可能 → 他のイシューの前提になっている数 → `priority::` → 番号順」。
 
 ## ブランチと PR
 
 - `main` への直接 push と force push は禁止
-- ブランチ名は `feat/*` / `fix/*` / `docs/*`
+- ブランチ名は `<prefix>/<イシュー番号>-<説明>`（例: `feat/18-add-bookmark-api`）。`prefix` は `feat` / `fix` / `docs` / `refactor`
+- commit 前に **self-review**（`.claude/shared/rules.md`）を通す。見つけた問題は自分で直してから出す
 - PR 本文は `.github/pull_request_template.md` に沿う。イシューを閉じる場合は `Closes #<番号>` を書く
+- 自分が作成した PR は自分でマージしない（コンフリクト解消後を除く）
 - マージは squash
 
 ## レビュー

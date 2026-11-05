@@ -19,9 +19,9 @@
 3. worktree とブランチを作る。
    ```bash
    git fetch origin main
-   git worktree add -b feat/issue-<番号> ../hannari-<番号> origin/main
+   git worktree add -b <prefix>/<番号>-<説明> ../hannari-<番号> origin/main
    ```
-   ブランチ名は内容に応じて `feat/` `fix/` `docs/` を使う。
+   `prefix` は内容に応じて `feat` / `fix` / `docs` / `refactor`、`<説明>` は英小文字とハイフンの短い説明（例: `feat/18-add-bookmark-api`）。
 4. 実装する。`AGENTS.md` の実装規約に従う（1 PR = 1 目的、コメントは意図を書く、機密情報は `.env` から読む）。
 5. 検証する。
    ```bash
@@ -31,13 +31,14 @@
    - 受け入れ条件をテストにできる場合はテストを追加し、check に含める
    - check にテストが1つもない段階では、起動確認かスクリプトでの動作確認を行い、確認内容を報告に書く
    - 2回直しても通らなければ、commit せず `failed` として報告する
-6. commit して push し、PRを作る。
+6. **self-review する**（`.claude/shared/rules.md` の「self-review」）。指摘があれば同じブランチで自分で直し、check を通してからもう一度見る。最大3回。
+7. commit して push し、PRを作る。
    ```bash
-   git push -u origin feat/issue-<番号>
-   gh pr create --title "<内容>" --body "<.github/pull_request_template.md に沿って記述。末尾に Closes #<番号>>"
+   git push -u origin <ブランチ名>
+   gh pr create --title "<内容>" --body "<.github/pull_request_template.md に沿って記述。self-review で直した点と check の結果を含め、末尾に Closes #<番号>>"
    ```
-7. CI の結果を確認する（最大5分）。失敗したら原因を直して push し直す（2回まで）。
-8. `status::wip` を外す。worktree は親が片付けるので残してよい（未 push の変更がないことだけ確認する）。
+8. CI の結果を確認する（最大5分）。失敗したら原因を直して push し直す（2回まで）。
+9. `status::wip` を外す。worktree は親が片付けるので残してよい（未 push の変更がないことだけ確認する）。
 
 ## レビュー対応モード
 
@@ -49,12 +50,14 @@
 2. 既存ブランチで worktree を作る。
    ```bash
    git fetch origin <ブランチ名>
-   git worktree add ../hannari-<番号> origin/<ブランチ名>
+   git worktree add ../hannari-<番号> -b <ブランチ名> origin/<ブランチ名>
    ```
 3. `mergeable` が `CONFLICTING` なら、先に main を取り込んで解消する（`.claude/sleep/conflict.md` と同じ方針: 両方の意図を残す。判断できない場合は解消せず報告する）。
 4. 指摘を対応する。対応しないと判断した指摘があれば、その理由を用意する。
-5. 通常モードと同じ検証を行い、commit して push する。
-6. 対応結果を1件のコメントで投稿する（指摘ごとに「対応した / 対応しない（理由）」）。
+5. 通常モードと同じ検証（check）と self-review を行い、commit して push する。
+6. 対応結果を1件のコメントで投稿する。
+   - 指摘を投稿したレビュアー（自分と bot を除く）を `@<ログイン名>` でメンションする
+   - 指摘ごとに「対応した（commit ハッシュ）」「対応しない（理由）」を書き、再レビューを依頼する
    ```bash
    gh pr comment <番号> --body "<本文>"
    ```
