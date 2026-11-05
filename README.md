@@ -1,72 +1,70 @@
-# （アプリ名 未定）
+# hannari-hustlers
 
-ブックマークを「保存して終わり」から「行動」につなげる、情報構造化＋アクション支援の自律エージェント。
+ブックマークを構造化し、次にとるべきアクションの提案・準備までを行う自律エージェント。Google ハッカソン参加作品。
 
-> Googleハッカソン参加作品。要件は [docs/requirements.md](docs/requirements.md)、構成は [docs/architecture.md](docs/architecture.md)。
+- 要件: [docs/requirements.md](docs/requirements.md)
+- アーキテクチャ: [docs/architecture.md](docs/architecture.md)
+- 技術選定: [docs/tech-selection.md](docs/tech-selection.md) / [docs/decisions/](docs/decisions)
 
----
+## セットアップ
 
-## はじめに（メンバー向け）
+Codespaces（推奨）: **Code → Codespaces → Create codespace on main**
 
-1. このリポジトリを開き、**Code → Codespaces → Create codespace** を押す（環境が自動でそろいます）
-   - 手元のPCでやる場合は、VS Code の Dev Containers 拡張で開く
-2. `.env.example` をコピーして `.env` を作り、チャットで共有された値を入れる
-   ```bash
-   cp .env.example .env
-   ```
-3. AIツール（Claude Code / Gemini CLI など）を起動すると、`AGENTS.md` のルールが自動で読まれます
-4. 作業はブランチを切って PR で出す
-   ```bash
-   git switch -c feat/やること
-   # 作業してコミット
-   git push -u origin feat/やること
-   ```
-   PR を作ると Gemini が自動でレビューし、CI がチェックします
+ローカル: clone して VS Code の Dev Containers 拡張で開く。
 
-## ファイルの説明
+```bash
+git clone https://github.com/Kambara-Michiru/hannari-hustlers.git
+cd hannari-hustlers
+cp .env.example .env   # 値はチームのチャットで共有
+```
 
-| ファイル | 何のため |
+## 開発フロー
+
+- `main` への直接 push は禁止。`feat/*` / `fix/*` / `docs/*` でブランチを切り、PR を出す
+- PR には CI（`check`）と Gemini Code Assist のレビューが走る
+- Claude Code / Gemini CLI などの AI エージェントは [AGENTS.md](AGENTS.md) のルールに従う
+
+```bash
+git switch -c feat/<topic>
+git push -u origin feat/<topic>
+```
+
+## リポジトリ構成
+
+| パス | 内容 |
 |---|---|
-| `AGENTS.md` | AIツール共通のルール（pro/con を出してから決める、など） |
-| `CLAUDE.md` / `GEMINI.md` | 各AIツール用。中身は AGENTS.md を読み込むだけ |
-| `docs/requirements.md` | 要件定義（AIと一緒に埋める） |
-| `docs/tech-selection.md` | 技術選定の進め方とAIへの頼み方 |
-| `docs/decisions/` | 技術選定の記録（ADR）。発表の質疑対策にもなる |
-| `docs/architecture.md` | 全体の構成図 |
-| `.github/workflows/ci.yml` | PR ごとの自動チェック |
-| `.gemini/` | Gemini のPRレビュー設定（日本語・初心者向け） |
-| `.devcontainer/` | 全員同じ開発環境にする設定 |
+| `AGENTS.md` | AI エージェント共通ルール（`CLAUDE.md` / `GEMINI.md` から参照） |
+| `docs/requirements.md` | 要件定義 |
+| `docs/architecture.md` | 構成図・処理フロー・担当 |
+| `docs/tech-selection.md` | 技術選定の候補と論点 |
+| `docs/decisions/` | ADR（技術判断の記録） |
+| `.devcontainer/` | 開発環境定義（Codespaces / Dev Containers 共通） |
+| `.github/workflows/ci.yml` | CI |
+| `.gemini/` | Gemini Code Assist のレビュー設定 |
 
----
-
-## 最初に1人がやる初期設定（リーダー向けチェックリスト）
+## 初期設定（リーダー）
 
 ### GitHub
 
-- [ ] このフォルダの中身で新しいリポジトリを作り、最初のコミットを push
-  （**.gitignore が入った状態で最初のコミットをすること**）
-- [ ] メンバーを招待（Settings → Collaborators）
-- [ ] [Gemini Code Assist](https://github.com/apps/gemini-code-assist) をインストールし、このリポジトリを選択
-- [ ] ブランチ保護（Settings → Rules → Rulesets → New branch ruleset）
-  - 対象：`main`（Target branches → Include default branch）
-  - Enforcement status：**Active**
-  - ✅ Restrict deletions（ブランチ削除禁止）
-  - ✅ Block force pushes（強制push禁止）
-  - ✅ Require a pull request before merging（承認数は **0** でOK。レビュー待ちで止まらないように）
-  - ✅ Require status checks to pass → `check` を追加（CIが一度動いた後に選べるようになります）
+- [x] リポジトリ作成と初期コミットの push
+- [ ] メンバーを Collaborator に招待（Settings → Collaborators）
+- [ ] [Gemini Code Assist](https://github.com/apps/gemini-code-assist) をインストールし、本リポジトリを選択
+- [ ] ブランチ保護（Settings → Rules → Rulesets）
+  - private + GitHub Free では利用不可。Public 化または Pro 契約まではルールで強制せず運用で担保する
+  - 有効化時の設定: 対象 `main` / Enforcement `Active` / Restrict deletions / Block force pushes / Require a pull request before merging（承認数 0） / Require status checks to pass → `check`
 
-### Google Cloud（クレジット）
+### Google Cloud
 
-- [ ] ハッカソン専用のプロジェクトを作成し、クレジットの付いた請求先アカウントに紐づける
-- [ ] お支払い → クレジットで、**有効期限と対象サービス**を確認
-- [ ] 予算アラートを設定（※通知だけで、課金は自動で止まりません）
-- [ ] メンバーを IAM で追加（オーナーはリーダーだけ、他は「編集者」）
-- [ ] APIキーを作ったら、使えるAPIを制限しておく
-- [ ] **ハッカソン終了後にプロジェクトを削除（またはシャットダウン）する**
+- [ ] ハッカソン専用プロジェクトを作成し、クレジット付きの請求先アカウントに紐づける
+- [ ] クレジットの有効期限と対象サービスを確認
+- [ ] 予算アラートを設定（通知のみ。課金は自動停止しない）
+- [ ] IAM でメンバーを追加（オーナーはリーダーのみ、他は編集者）
+- [ ] API キーに使用可能 API の制限をかける
+- [ ] ハッカソン終了後にプロジェクトを削除またはシャットダウン
 
 ### 技術選定
 
-- [ ] `docs/requirements.md` をAIと埋める
-- [ ] `docs/tech-selection.md` の手順で技術を決め、`docs/decisions/001-tech-stack.md` を埋める
-- [ ] 決まった構成に合わせて、`.devcontainer/` と `ci.yml` をAIに直してもらう
-- [ ] Hello World をデプロイまで通す（初日にやると最終日が楽）
+- [ ] `docs/requirements.md` の MVP とエージェントの自律レベルを確定
+- [ ] `docs/tech-selection.md` の論点を比較し、`docs/decisions/001-tech-stack.md` に記録
+- [ ] 確定した構成に合わせて `.devcontainer/` と `.github/workflows/ci.yml` を更新
+- [ ] Hello World をデプロイまで通す
