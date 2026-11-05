@@ -20,9 +20,12 @@ cp .env.example .env   # 値はチームのチャットで共有
 
 ## 開発フロー
 
+詳細は [docs/workflow.md](docs/workflow.md)。
+
 - `main` への直接 push は禁止。`feat/*` / `fix/*` / `docs/*` でブランチを切り、PR を出す
 - PR には CI（`check`）と Gemini Code Assist のレビューが走る
 - Claude Code / Gemini CLI などの AI エージェントは [AGENTS.md](AGENTS.md) のルールに従う
+- 不在時の一括実行（レビュー・マージ・実装）は `/sleep`
 
 ```bash
 git switch -c feat/<topic>
@@ -34,6 +37,7 @@ git push -u origin feat/<topic>
 | パス | 内容 |
 |---|---|
 | `AGENTS.md` | AI エージェント共通ルール（`CLAUDE.md` / `GEMINI.md` から参照） |
+| `docs/workflow.md` | イシュー・PR・レビュー・自動実行の運用 |
 | `docs/requirements.md` | 要件定義 |
 | `docs/architecture.md` | 構成図・処理フロー・担当 |
 | `docs/tech-selection.md` | 技術選定の候補と論点 |
@@ -41,12 +45,16 @@ git push -u origin feat/<topic>
 | `.devcontainer/` | 開発環境定義（Codespaces / Dev Containers 共通） |
 | `.github/workflows/ci.yml` | CI |
 | `.gemini/` | Gemini Code Assist のレビュー設定 |
+| `.claude/commands/sleep.md` | `/sleep`（不在時の一括実行）の定義 |
+| `.claude/sleep/` | `/sleep` の役割別手順 |
+| `.claude/shared/rules.md` | マージ条件・レビュー観点・状態ラベル |
 
 ## 初期設定（リーダー）
 
 ### GitHub
 
 - [x] リポジトリ作成と初期コミットの push
+- [x] 状態ラベル（`status::wip` / `status::reviewing`）の作成
 - [ ] メンバーを Collaborator に招待（Settings → Collaborators）
 - [ ] [Gemini Code Assist](https://github.com/apps/gemini-code-assist) をインストールし、本リポジトリを選択
 - [ ] ブランチ保護（Settings → Rules → Rulesets）

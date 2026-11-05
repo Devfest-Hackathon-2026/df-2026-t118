@@ -36,6 +36,7 @@ Claude Code / Gemini CLI / Codex など、このリポジトリで動くすべ�
 | 機能実装・スコープ判断 | `docs/requirements.md` |
 | 構成・設計に関わる変更 | `docs/architecture.md` |
 | 技術・依存の追加変更 | `docs/decisions/` の既存 ADR、`docs/tech-selection.md` |
+| イシュー・PR・レビューの運用 | `docs/workflow.md`、`.claude/shared/rules.md` |
 
 作業前に、参照したドキュメントを明示する。
 
