@@ -1,0 +1,24 @@
+// 全員が同じ開発環境で始めるための設定（GitHub Codespaces / VS Code Dev Containers）
+// 技術スタックが決まる前なので、Node.js / Python / Go と Google Cloud のツールを全部入れています。
+// スタックが決まったら、使わないものを消すと起動が速くなります（Flutterを使う場合は追加が必要）。
+{
+  "name": "hackathon",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "lts" },
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.12" },
+    "ghcr.io/devcontainers/features/go:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/dhoeric/features/google-cloud-cli:1": {}
+  },
+  // Firebase CLI と Gemini CLI を入れる
+  "postCreateCommand": "npm install -g firebase-tools @google/gemini-cli",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bierner.markdown-mermaid",
+        "editorconfig.editorconfig"
+      ]
+    }
+  }
+}

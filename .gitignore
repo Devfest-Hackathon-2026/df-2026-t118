@@ -1,0 +1,47 @@
+# ===== 機密情報（絶対にpushしない） =====
+.env
+.env.*
+!.env.example
+# Google Cloud のサービスアカウント鍵など
+*-key.json
+service-account*.json
+credentials*.json
+# Firebase のローカル設定・ログ
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# ===== 依存パッケージ・ビルド成果物 =====
+# Node.js
+node_modules/
+.next/
+dist/
+build/
+.turbo/
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+# Go
+/bin/
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+/build/
+
+# ===== OS・エディタ =====
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+
+# ===== ログ =====
+*.log
+npm-debug.log*
