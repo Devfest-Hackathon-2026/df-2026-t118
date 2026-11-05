@@ -1,6 +1,5 @@
 @AGENTS.md
 
-# Gemini CLI 向けの補足
+# Gemini CLI 固有
 
-- ルール本体は AGENTS.md にあります。ここには Gemini CLI 固有のことだけ書きます。
-- Google の製品・APIについては、可能な限り公式ドキュメントで最新情報を確認してから答えること。
+- Google 製品・API の仕様、提供状況、料金は公式ドキュメントで確認してから回答する。
