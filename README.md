@@ -4,6 +4,9 @@
 
 > **初めての人は [docs/onboarding.md](docs/onboarding.md) から読んでください。** 環境の用意から1日の流れまで、これ1枚で始められます。
 
+カテゴリ: クリエイティブ / 提出締切: **2026-11-10（火）19:00**
+
+- 提出物と残りスケジュール: [docs/submission.md](docs/submission.md)
 - 要件: [docs/requirements.md](docs/requirements.md)
 - アーキテクチャ: [docs/architecture.md](docs/architecture.md)
 - 技術選定: [docs/tech-selection.md](docs/tech-selection.md) / [docs/decisions/](docs/decisions)
@@ -44,6 +47,10 @@ git push -u origin feat/<topic>
 | `scripts/check.sh` | 検証の門（機密情報・lint・型・ビルド・テスト） |
 | `docs/onboarding.md` | メンバーが最初に読む導入 |
 | `docs/workflow.md` | イシュー・PR・レビュー・自動実行の運用 |
+| `docs/submission.md` | 提出物・締切・審査対象外になる条件・最終チェックリスト |
+| `docs/product-doc.md` | プロダクト説明ドキュメント（提出物）の下書き |
+| `docs/assets.md` | 著作物利用シート（提出物）のための外部素材台帳 |
+| `docs/references/` | 主催者配布資料 |
 | `docs/requirements.md` | 要件定義 |
 | `docs/architecture.md` | 構成図・処理フロー・担当 |
 | `docs/tech-selection.md` | 技術選定の候補と論点 |

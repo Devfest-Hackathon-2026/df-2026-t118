@@ -5,10 +5,23 @@ Claude Code / Gemini CLI / Codex など、このリポジトリで動くすべ�
 
 ## プロジェクト
 
-- Google ハッカソン参加作品
+- Google ハッカソン参加作品（DevFest GDGoC Japan 2026 Hackathon）
 - プロダクト: ブックマークを構造化し、次にとるべきアクションを提案・支援する自律エージェント
+- 提出カテゴリ: クリエイティブ
+- 提出締切: 2026-11-10（火）19:00 → `docs/submission.md`
 - 要件: 未確定 → `docs/requirements.md`
 - 技術スタック: 未確定 → `docs/decisions/001-tech-stack.md`
+
+## 提出要件（違反すると審査対象外）
+
+実装・ドキュメント・デモのどれにも効く制約。これに反する提案はしない。
+
+1. アプリの実行に、App Engine / Compute Engine / GKE / Cloud Run / Firebase App Hosting / Firebase Hosting のいずれか 1 つ以上を使う
+2. カテゴリ「クリエイティブ」から外れる機能・訴求を提案しない
+3. プロダクトが使う AI は Gemini に統一する。他社 AI ツールの名称・ロゴを UI・デモ・提出物に出さない
+4. デプロイ URL は 2026-11-14 まで稼働させる。これを壊す変更（環境の作り直し、課金停止など）は事前に確認する
+5. 外部素材（画像・フォント・音源・デモ用の外部コンテンツ）を追加したら、その場で `docs/assets.md` に追記する
+6. テストアカウントやサンプルデータに、実在の個人情報を使わない
 
 ## コマンド
 
@@ -45,6 +58,7 @@ Claude Code / Gemini CLI / Codex など、このリポジトリで動くすべ�
 | 作業 | 参照先 |
 |---|---|
 | 機能実装・スコープ判断 | `docs/requirements.md` |
+| 提出物に関わる作業 | `docs/submission.md`、`docs/product-doc.md` |
 | 構成・設計に関わる変更 | `docs/architecture.md` |
 | 技術・依存の追加変更 | `docs/decisions/` の既存 ADR、`docs/tech-selection.md` |
 | イシュー・PR・レビューの運用 | `docs/workflow.md`、`.claude/shared/rules.md` |
