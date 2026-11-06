@@ -6,11 +6,12 @@ Claude Code / Gemini CLI / Codex など、このリポジトリで動くすべ�
 ## プロジェクト
 
 - Google ハッカソン参加作品（DevFest GDGoC Japan 2026 Hackathon）
-- プロダクト: ブックマークを構造化し、次にとるべきアクションを提案・支援する自律エージェント
+- プロダクト: 保存したインスピレーションを 3D の島に浮かべ、PARA で整理して 1 日 1 つだけ実行を提案するアプリ
 - 提出カテゴリ: クリエイティブ
 - 提出締切: 2026-11-10（火）19:00 → `docs/submission.md`
-- 要件: 未確定 → `docs/requirements.md`
-- 技術スタック: 未確定 → `docs/decisions/001-tech-stack.md`
+- 要件: **確定（2026-11-06）** → `docs/requirements.md`
+- 技術スタック: **確定（2026-11-06）** → `docs/decisions/002-web-stack.md`（ADR-001 は廃止）
+- Web (PWA) + three.js を Firebase Hosting に配信。バックエンドは Cloud Functions + Genkit。言語は TypeScript に統一
 
 ## 提出要件（違反すると審査対象外）
 

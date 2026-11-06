@@ -1,6 +1,6 @@
 # hannari-hustlers
 
-ブックマークを構造化し、次にとるべきアクションの提案・準備までを行う自律エージェント。Google ハッカソン参加作品。
+保存したインスピレーションを 3D の島に浮かべ、PARA で整理して、1 日 1 つだけ小さな実行を提案するアプリ。Google ハッカソン参加作品。
 
 > **初めての人は [docs/onboarding.md](docs/onboarding.md) から読んでください。** 環境の用意から1日の流れまで、これ1枚で始められます。
 
@@ -10,6 +10,8 @@
 - 要件: [docs/requirements.md](docs/requirements.md)
 - アーキテクチャ: [docs/architecture.md](docs/architecture.md)
 - 技術選定: [docs/tech-selection.md](docs/tech-selection.md) / [docs/decisions/](docs/decisions)
+
+技術スタックは [ADR-002](docs/decisions/002-web-stack.md) で確定。Web (PWA) + three.js を Firebase Hosting に配信 / Cloud Functions for Firebase + Genkit / Firestore / Gemini。言語は TypeScript に統一。
 
 ## セットアップ
 
@@ -90,7 +92,7 @@ git push -u origin feat/<topic>
 
 ### 技術選定
 
-- [ ] `docs/requirements.md` の MVP とエージェントの自律レベルを確定
-- [ ] `docs/tech-selection.md` の論点を比較し、`docs/decisions/001-tech-stack.md` に記録
+- [x] `docs/requirements.md` の MVP とエージェントの自律レベルを確定
+- [x] `docs/tech-selection.md` の論点を比較し、`docs/decisions/001-tech-stack.md` に記録
 - [ ] 確定した構成に合わせて `.devcontainer/` と `.github/workflows/ci.yml` を更新
 - [ ] Hello World をデプロイまで通す
