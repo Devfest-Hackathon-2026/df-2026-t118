@@ -45,3 +45,6 @@ Thumbs.db
 # ===== ログ =====
 *.log
 npm-debug.log*
+
+# ===== ローカル作業用デザインアーカイブ =====
+_workspace-archive/

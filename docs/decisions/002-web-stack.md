@@ -88,6 +88,40 @@ ADR-001 の 6 観点の比較は済んでいるため、ここでは**提出要�
 | Firestore のベクトル検索がサーバー SDK 専用 | 束ねは定時ジョブでしか走らないので影響なし。MVP は総当たりでも足りる |
 | 3 日で全機能は入らない | デモシナリオ（UC1 → UC2 → UC4 → UC5 → UC6）に必要な機能から作る。F7・F8・F9 は後回し |
 
+## 実装メモ（2026-11-06 追記）
+
+### three は 0.128.0 に固定する
+
+`package.json` でキャレットを付けず `"three": "0.128.0"` と書く。理由は 2 つある。
+
+1. `island.js` は `THREE.sRGBEncoding` / `THREE.LinearEncoding` / `texture.encoding` / `renderer.outputEncoding` を使っている。これらは r152〜r155 の color management 刷新で削除された
+2. **より重い理由**: `island.js` はシーンを `traverse` して、全ライトと全マテリアルに `convertSRGBToLinear()` を手で掛けている。r152 以降は `ColorManagement.enabled` が既定で true になり、レンダラ側が同じ変換を行うため**二重変換になる**
+
+つまり削除された API を新しい名前に置き換えるだけでは直らず、手動変換の削除とマテリアル定義の見直しまで必要になる。残り日数を考えると、上げずに固定するのが正しい。**安易にバージョンを上げないこと。**
+
+### 読み込み順
+
+`island.js` も `app.js` も IIFE で、グローバルの `THREE` と `window.Island` を前提にしている。
+ESM の `import` 宣言は巻き上げられて先に走るため、`src/main.ts` では次の順にしている。
+
+```
+import * as THREE from 'three'  →  window.THREE = THREE  →  await import('./vendor/island.js')  →  await import('./app.js')
+```
+
+`app.js` は両方がそろうまで 120ms ごとにポーリングする作りなので、順序を間違えてもエラーにならず**「島が出ないまま黙って待つ」**状態になる。デバッグしにくいので、この順序は動かさない。
+
+### React は段階的に入れる
+
+ADR の決定は「Vite + React + TypeScript」だが、**初回のデプロイでは React を入れていない**。
+11/7 の完了条件が「実行基盤上の URL が外から開く」であり、既存プロトタイプをそのまま Vite に載せるのが最短だったため。
+土台（Vite + TypeScript）は React を後から足せる形になっている。画面を React コンポーネントに移すのは次の段階。
+
+### CDN 依存
+
+`index.html` が読んでいた cdnjs の three.js は、npm に移したので外した。
+Google Fonts の 2 本（Instrument Sans / Instrument Serif / Zen Kaku Gothic New / JetBrains Mono / Material Symbols Outlined）はまだ外部参照。
+審査中に読めないとタイポグラフィが崩れるため、セルフホスト化を別途行う。
+
 ## 決定後にやること
 
 - [ ] **Vite + React + TypeScript のプロジェクトを作り、`island.js` を載せて Firebase Hosting にデプロイする（11/7 の完了条件）**

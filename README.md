@@ -9,9 +9,10 @@
 - 提出物と残りスケジュール: [docs/submission.md](docs/submission.md)
 - 要件: [docs/requirements.md](docs/requirements.md)
 - アーキテクチャ: [docs/architecture.md](docs/architecture.md)
+- 画面遷移・ユースケース解説（PC版 / スマホ版スクリーンショット付き）: [docs/ui-and-usecases.md](docs/ui-and-usecases.md)
 - 技術選定: [docs/tech-selection.md](docs/tech-selection.md) / [docs/decisions/](docs/decisions)
 
-技術スタックは [ADR-002](docs/decisions/002-web-stack.md) で確定。Web (PWA) + three.js を Firebase Hosting に配信 / Cloud Functions for Firebase + Genkit / Firestore / Gemini。言語は TypeScript に統一。
+技術スタックは [ADR-002](docs/decisions/002-web-stack.md) および [ADR-003](docs/decisions/003-backend-and-data-model.md) で確定。Web (PWA) + Vite + React + TypeScript + three.js を Firebase Hosting に配信 / Cloud Functions for Firebase + Genkit / Firestore / Gemini。言語は TypeScript に統一。
 
 ## セットアップ
 
@@ -25,6 +26,37 @@ cd hannari-hustlers
 cp .env.example .env            # 値はチームのチャットで共有
 git config core.hooksPath .githooks   # push 前に check を通す（Codespaces では自動）
 ```
+
+## 開発
+
+```bash
+npm install
+npm run dev    # http://localhost:5173
+```
+
+| コマンド | 内容 |
+|---|---|
+| `npm run dev` | 開発サーバー（Vite + `/api/*` Gemini AI ミドルウェア） |
+| `npm run build` | `dist/` を生成 |
+| `npm run typecheck` | 型チェック（`tsc --noEmit`） |
+| `npm test` | 単体テスト実行（`vitest run`） |
+| `bash scripts/check.sh` | 検証の門。コミット前と push 時に通す |
+
+3D の島は [`src/vendor/island.js`](src/vendor/island.js) として組み込まれている。
+**three は 0.128.0 で固定。上げると島の色が壊れる**（理由は [ADR-002 の実装メモ](docs/decisions/002-web-stack.md)）。
+
+## デプロイ（Firebase Hosting & Functions）
+
+Firebase プロジェクトを作ってから、`.firebaserc` を用意する。
+
+```bash
+npx firebase-tools login
+npx firebase-tools use --add
+npm run build
+npx firebase-tools deploy --only hosting,firestore:rules,storage
+```
+
+`firebase.json` は `dist/` を配信する設定で用意済み。`.firebaserc` はプロジェクト ID が決まってから作る。
 
 ## 開発フロー
 
@@ -45,6 +77,9 @@ git push -u origin feat/<topic>
 
 | パス | 内容 |
 |---|---|
+| `src/` | フロントエンド実装（Vite + React + TypeScript: `components/`, `hooks/`, `services/`, `constants/`, `types/`, `styles/`, `vendor/`） |
+| `functions/` | バックエンド実装（Cloud Functions for Firebase + Genkit + Gemini: `schemas.ts`, `aiCore.ts`, `index.ts`） |
+| `public/` | 静的アセット（セルフホストフォント `fonts/`、PWA アイコン `icons/`、`manifest.webmanifest`、`sw.js`） |
 | `AGENTS.md` | AI エージェント共通ルール（`CLAUDE.md` / `GEMINI.md` から参照） |
 | `scripts/check.sh` | 検証の門（機密情報・lint・型・ビルド・テスト） |
 | `docs/onboarding.md` | メンバーが最初に読む導入 |
@@ -52,47 +87,14 @@ git push -u origin feat/<topic>
 | `docs/submission.md` | 提出物・締切・審査対象外になる条件・最終チェックリスト |
 | `docs/product-doc.md` | プロダクト説明ドキュメント（提出物）の下書き |
 | `docs/assets.md` | 著作物利用シート（提出物）のための外部素材台帳 |
+| `docs/ui-and-usecases.md` | PC版・スマホ版の画面遷移とユースケース解説（スクリーンショット付き） |
 | `docs/references/` | 主催者配布資料 |
 | `docs/requirements.md` | 要件定義 |
-| `docs/architecture.md` | 構成図・処理フロー・担当 |
+| `docs/architecture.md` | 構成図・ディレクトリ構造・処理フロー |
 | `docs/tech-selection.md` | 技術選定の候補と論点 |
-| `docs/decisions/` | ADR（技術判断の記録） |
+| `docs/decisions/` | ADR（技術判断の記録: 001〜003） |
 | `.devcontainer/` | 開発環境定義（Codespaces / Dev Containers 共通） |
 | `.github/workflows/ci.yml` | CI |
 | `.gemini/` | Gemini Code Assist のレビュー設定 |
 | `.githooks/pre-push` | push 前に check を通す git hook |
 | `.claude/settings.json` | エージェントのガードレール（deny / ask） |
-| `.claude/agents/reviewer.md` | レビュー専門サブエージェント（`@reviewer`） |
-| `.claude/commands/task.md` | `/task`（対話版のイシュー実装）の定義 |
-| `.claude/commands/review.md` | `/review`（対話版のPRレビュー）の定義 |
-| `.claude/commands/sleep.md` | `/sleep`（不在時の一括実行）の定義 |
-| `.claude/sleep/` | `/sleep` の役割別手順 |
-| `.claude/shared/rules.md` | マージ条件・レビュー観点・状態ラベル |
-
-## 初期設定（リーダー）
-
-### GitHub
-
-- [x] リポジトリ作成と初期コミットの push
-- [x] 状態ラベル（`status::wip` / `status::reviewing`）の作成
-- [ ] メンバーを Collaborator に招待（Settings → Collaborators）
-- [ ] [Gemini Code Assist](https://github.com/apps/gemini-code-assist) をインストールし、本リポジトリを選択
-- [ ] ブランチ保護（Settings → Rules → Rulesets）
-  - private + GitHub Free では利用不可。Public 化または Pro 契約まではルールで強制せず運用で担保する
-  - 有効化時の設定: 対象 `main` / Enforcement `Active` / Restrict deletions / Block force pushes / Require a pull request before merging（承認数 0） / Require status checks to pass → `check`
-
-### Google Cloud
-
-- [ ] ハッカソン専用プロジェクトを作成し、クレジット付きの請求先アカウントに紐づける
-- [ ] クレジットの有効期限と対象サービスを確認
-- [ ] 予算アラートを設定（通知のみ。課金は自動停止しない）
-- [ ] IAM でメンバーを追加（オーナーはリーダーのみ、他は編集者）
-- [ ] API キーに使用可能 API の制限をかける
-- [ ] ハッカソン終了後にプロジェクトを削除またはシャットダウン
-
-### 技術選定
-
-- [x] `docs/requirements.md` の MVP とエージェントの自律レベルを確定
-- [x] `docs/tech-selection.md` の論点を比較し、`docs/decisions/001-tech-stack.md` に記録
-- [ ] 確定した構成に合わせて `.devcontainer/` と `.github/workflows/ci.yml` を更新
-- [ ] Hello World をデプロイまで通す

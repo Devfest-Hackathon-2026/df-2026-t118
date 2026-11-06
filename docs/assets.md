@@ -16,21 +16,39 @@
 
 | # | 素材 | 種別 | 出典 URL | 作者・提供元 | ライセンス | 利用箇所 | 改変 | クレジット表記 | 備考 |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | | | | | | | | | |
+| 1 | Instrument Sans | フォント | https://fonts.google.com/specimen/Instrument+Sans | Rodrigo Fuenzalida, Jordan Egstad | SIL OFL 1.1 | `public/fonts/` 見出しと英字ラベル | なし（Google Fonts 配信の woff2 をそのまま同梱） | 不要 | 収録は 400/500/600。デザイン上は 300（Light）指定だが Google Fonts に 300 が無く、400 で描画される |
+| 2 | Zen Kaku Gothic New | フォント | https://fonts.google.com/specimen/Zen+Kaku+Gothic+New | Yoshimichi Ohira | SIL OFL 1.1 | `public/fonts/` 日本語本文 | なし | 不要 | 300/400/500 の3ウェイト。unicode-range で121スライスに分かれており計 3.9MB。ブラウザは本文に出る文字を含むスライスだけ取得する |
+| 3 | JetBrains Mono | フォント | https://fonts.google.com/specimen/JetBrains+Mono | JetBrains, Philipp Nurullin, Konstantin Bulenkov | SIL OFL 1.1 | `public/fonts/` 小さなラベルと時刻 | なし | 不要 | |
+| 4 | Material Symbols Outlined | フォント（アイコン） | https://fonts.google.com/icons | Google | Apache License 2.0 | `public/fonts/` 各画面のアイコン | **あり** — 軸を opsz24/wght400/FILL0/GRAD0 に固定し、使用する24個だけにサブセット（2.3MB → 268KB） | 不要 | 収録しているアイコンは下の一覧のとおり。足すときは取り直しが必要 |
+| 5 | three.js r128 | OSS ライブラリ | https://github.com/mrdoob/three.js/tree/r128 | three.js authors (mrdoob) | MIT | `package.json` (`"three": "0.128.0"`) | なし | 不要 | r152 以降の color management 刷新で削除された API に `src/vendor/island.js` が依存しているため r128 に固定。詳細は `docs/decisions/002-web-stack.md` |
+| 6 | island.js（3Dの島とキャラクター） | 生成AIで作った素材 | — | Claude（Claude Design） | — | `src/vendor/island.js` | なし（生成物をそのまま使用） | 要確認 | Claude Design のデザインプロジェクト「Island mobile app form」で生成。three.js で島・キャラクター（ぽこ／ともり／ふみ）・カード・ステッカーを手続き的に描く。外部の画像素材は使っておらず、模様はすべてコード生成 |
+| 7 | 島アプリのUI（S1〜S9） | 生成AIで作った素材 | — | Claude / Gemini | — | `src/components/screens/`・`src/styles/styles.css` | — | 要確認 | デザインは Claude Design のプロトタイプ v2 をベースに、PC（右ドロワー）＆スマホ（ボトムシート）両対応の React + TypeScript コンポーネントとして実装 |
+| 8 | アプリアイコン | 生成AIで作った素材 | — | Claude Code | — | `public/icons/*.png` | — | 要確認 | 外部素材を使わず、Python の zlib だけで PNG を直接生成。空色の地に島とドームを描いたもの |
+| 9 | React / React DOM | OSS ライブラリ | https://react.dev/ | Meta Platforms, Inc. | MIT | `src/` フロントエンド UI | なし | 不要 | ADR-002 / ADR-003 に基づき S1〜S9 の画面コンポーネントで使用 |
+| 10 | Firebase JS SDK / Firebase Functions / Genkit | OSS ライブラリ | https://firebase.google.com/ | Google | Apache License 2.0 | `src/services/backendClient.ts`, `functions/` | なし | 不要 | Auth / Firestore / Storage / Cloud Functions / Genkit 連携で使用 |
+| 11 | Zod | OSS ライブラリ | https://zod.dev/ | Colin McDonnell | MIT | `functions/src/schemas.ts` | なし | 不要 | Gemini 構造化出力の型検証で使用 |
 
-### 記入のしかた
+### Material Symbols で収録しているアイコン
 
-- **ライセンス**: 名称を正確に（`CC BY 4.0`、`Apache-2.0`、`Google Fonts の Open Font License` など）。「フリー素材」は不可
-- **利用箇所**: `ホーム画面の背景` `デモ動画 0:12-0:20 の BGM` のように特定できる粒度で
-- **改変**: トリミング・色調補正・再エンコードも改変にあたる
-- **クレジット表記**: 必要な場合、どこに表記したかも書く
+`signal_cellular_alt` `wifi` `battery_full` `search` `add` `arrow_forward` `360` `auto_awesome` `check` `edit`
+`schedule` `chevron_right` `arrow_back` `more_horiz` `sentiment_satisfied` `hourglass_empty` `waves`
+`add_a_photo` `close` `inventory_2` `construction` `storefront` `local_library` `restart_alt`
 
-## 使わないもの
+## フォントの取得手順
 
-判断に迷うくらいなら使わない。
+`public/fonts/` は Google Fonts の css2 が返す `@font-face` を、参照先だけローカルに書き換えたもの。
+更新するときは同じ手順をなぞる。`unicode-range` は触らないこと（触ると日本語のスライス分割が壊れる）。
 
-- ライセンスが明示されていない素材
-- 商用利用・二次配布の可否が確認できない素材
-- 第三者が写っている写真・映像（デモ画面のスクリーンショットを含む）
-- 実在する企業・サービスのロゴ（デモ対象として必要な場合を除く）
-- 他社 AI ツールの名称・ロゴ（審査対象外の条件に該当する）
+本文用（woff2 を受け取るため、ブラウザの User-Agent を付けて取得する）:
+
+```
+https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Zen+Kaku+Gothic+New:wght@300;400;500&family=JetBrains+Mono:wght@500&display=swap
+```
+
+アイコン用（軸を1点に固定し、使うアイコン名だけ `text=` で渡す。アイコンを足したらこの一覧に加えて取り直す）:
+
+```
+https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&text=<上の一覧をスペース区切りで URL エンコードしたもの>&display=swap
+```
+
+返ってきた CSS 内の `https://fonts.gstatic.com/...` をすべて取得し、`src: url(...)` をローカルのファイル名に差し替えて `public/fonts/fonts.css` にまとめる。
