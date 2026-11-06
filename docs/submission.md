@@ -14,7 +14,7 @@
 | # | 提出物 | 提出先 | 下書き | 担当 | 状態 |
 |---|---|---|---|---|---|
 | 1 | GitHub リポジトリ | フォームに URL | 本リポジトリ | | |
-| 2 | プロダクト説明ドキュメント | Drive | [product-doc.md](product-doc.md) | | 未着手 |
+| 2 | プロダクト説明ドキュメント | Drive | [product-doc.md](product-doc.md) | | 下書きに 1〜3 章を記入済み。残りは実装後 |
 | 3 | デモ動画 | Drive | [demo-video.md](demo-video.md) | | 未着手 |
 | 4 | 著作物利用シート | Drive | [assets.md](assets.md) | | 未着手 |
 | 5 | ピッチ用スライド | Drive | | | 現地会場の申込者のみ。該当するか要確認 |
