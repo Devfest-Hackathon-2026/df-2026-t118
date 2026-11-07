@@ -8,6 +8,7 @@ export {
   confirmItemIntent,
   nightOrganize,
   morningPropose,
+  runDiscoveryCycle,
 } from './presentation/callableHandlers.js';
 
 export {

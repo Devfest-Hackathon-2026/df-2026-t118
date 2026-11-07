@@ -1,19 +1,46 @@
 import React, { useState } from 'react';
 import { PARA_TABS, stripes } from '../../domain/constants/islandConstants';
-import type { Bundle, ParaCategory, SavedItem } from '../../domain/models/islandModels';
+import type {
+  AreaEntity,
+  Bundle,
+  ParaCategory,
+  ProjectEntity,
+  SavedItem,
+} from '../../domain/models/islandModels';
 import { Icon } from '../common/UiParts';
 
 export const S9ItemSheet: React.FC<{
   item: SavedItem;
   parentBundle: Bundle | null;
+  projects?: ProjectEntity[];
+  areas?: AreaEntity[];
   onUpdateIntent: (itemId: string, nextIntent: string) => void;
-  onChangePara: (itemId: string, nextPara: ParaCategory) => void;
+  onChangePara: (
+    itemId: string,
+    nextPara: ParaCategory,
+    targetPlacementId?: string | null
+  ) => void;
+  onRestoreItem?: (itemId: string) => void;
+  onDeleteItem?: (itemId: string) => void;
   onOpenBundle: (bundleId: string) => void;
-}> = ({ item, parentBundle, onUpdateIntent, onChangePara, onOpenBundle }) => {
+}> = ({
+  item,
+  parentBundle,
+  projects = [],
+  areas = [],
+  onUpdateIntent,
+  onChangePara,
+  onRestoreItem,
+  onDeleteItem,
+  onOpenBundle,
+}) => {
   const [editing, setEditing] = useState<boolean>(false);
   const [intentText, setIntentText] = useState<string>(
     item.intent || item.intents[0] || item.title
   );
+
+  const activeProjects = projects.filter((p) => p.status === 'active');
+  const activeAreas = areas.filter((a) => a.status === 'active');
 
   const handleSave = () => {
     const trimmed = intentText.trim();
@@ -41,6 +68,8 @@ export const S9ItemSheet: React.FC<{
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span className="eyebrow eyebrow--accent">
           {item.kind} · {item.source}
+          {item.resourceTopic ? ` · ${item.resourceTopic}` : ''}
+          {item.intentStatus === 'reference' ? ' · 見るだけ・参考' : ''}
         </span>
         {item.url ? (
           <a
@@ -117,6 +146,42 @@ export const S9ItemSheet: React.FC<{
         </div>
       </div>
 
+      {activeProjects.length > 0 || activeAreas.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <span className="eyebrow eyebrow--muted">
+            PROJECT / AREA · 具体的な紐づけ先を変更
+          </span>
+          <div className="row-chips">
+            {activeProjects.map((proj) => (
+              <button
+                key={proj.id}
+                className={`chip${
+                  item.placementId === proj.id || item.bundleId === proj.id
+                    ? ' chip--ink'
+                    : ' chip--soft'
+                }`}
+                onClick={() => onChangePara(item.id, 'Projects', proj.id)}
+              >
+                Project: {proj.name}
+              </button>
+            ))}
+            {activeAreas.map((area) => (
+              <button
+                key={area.id}
+                className={`chip${
+                  item.placementId === area.id || item.bundleId === area.id
+                    ? ' chip--ink'
+                    : ' chip--soft'
+                }`}
+                onClick={() => onChangePara(item.id, 'Areas', area.id)}
+              >
+                Area: {area.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {parentBundle ? (
         <button
           className="stack"
@@ -124,7 +189,7 @@ export const S9ItemSheet: React.FC<{
         >
           <span className="stack__body">
             <span className="stack__title">所属する束: {parentBundle.intent}</span>
-            <span className="stack__sub">タップして束の詳細（S5）を見る</span>
+            <span className="stack__sub">タップして詳細（S5）を見る</span>
           </span>
           <Icon name="chevron_right" className="icon--muted" />
         </button>
@@ -133,6 +198,30 @@ export const S9ItemSheet: React.FC<{
           {item.note} · 夜になったら似たものと一緒に束ねるね。
         </span>
       )}
+
+      <div className="row2" style={{ marginTop: '4px' }}>
+        {item.para === 'Archives' && onRestoreItem ? (
+          <button
+            className="btn btn--ink btn--pill"
+            onClick={() => onRestoreItem(item.id)}
+          >
+            元の置き場へ復元する
+          </button>
+        ) : null}
+        {onDeleteItem ? (
+          <button
+            className="btn btn--ghost btn--pill"
+            onClick={() => {
+              if (window.confirm('この保存物を完全に削除しますか？（元に戻せません）')) {
+                onDeleteItem(item.id);
+              }
+            }}
+          >
+            <Icon name="delete" />
+            保存物を削除する
+          </button>
+        ) : null}
+      </div>
     </>
   );
 };

@@ -13,6 +13,8 @@ import {
   runNightOrganize,
   runMorningPropose,
 } from './functions/src/application/aiUseCases.js';
+import { RunDiscoveryCycleInputSchema } from './functions/src/domain/proactiveDiscoverySchemas.js';
+import { runProactiveDiscoveryCycle } from './functions/src/application/proactiveDiscoveryUseCases.js';
 
 function readJsonBody(req: IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
@@ -43,9 +45,26 @@ function sendJson(res: ServerResponse, status: number, payload: unknown) {
 
 // ローカル開発時（npm run dev / preview）でも .env の GEMINI_API_KEY をクライアントに露出させず
 // Cloud Functions と同じ AI パイプライン（F2/F3/F5/F6）を実行するミドルウェア。
-function islandApiPlugin(apiKey?: string): Plugin {
-  const handler = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-    if (!req.url?.startsWith('/api/') || req.method !== 'POST') {
+export function createIslandApiHandler(apiKey?: string) {
+  return async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+    if (!req.url?.startsWith('/api/')) {
+      return next();
+    }
+    if (req.url === '/api/health' && req.method === 'GET') {
+      return sendJson(res, 200, {
+        ok: true,
+        backend: 'vite-node-middleware',
+        geminiConfigured: Boolean(apiKey),
+        endpoints: [
+          '/api/analyzeItem',
+          '/api/confirmItemIntent',
+          '/api/nightOrganize',
+          '/api/morningPropose',
+          '/api/runDiscoveryCycle',
+        ],
+      });
+    }
+    if (req.method !== 'POST') {
       return next();
     }
     try {
@@ -70,12 +89,21 @@ function islandApiPlugin(apiKey?: string): Plugin {
         const out = await runMorningPropose(input, apiKey);
         return sendJson(res, 200, out);
       }
+      if (req.url === '/api/runDiscoveryCycle') {
+        const input = RunDiscoveryCycleInputSchema.parse(body);
+        const out = await runProactiveDiscoveryCycle(input);
+        return sendJson(res, 200, out);
+      }
       return sendJson(res, 404, { error: 'Not found' });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Internal error';
       return sendJson(res, 400, { error: msg });
     }
   };
+}
+
+function islandApiPlugin(apiKey?: string): Plugin {
+  const handler = createIslandApiHandler(apiKey);
 
   return {
     name: 'island-api-middleware',

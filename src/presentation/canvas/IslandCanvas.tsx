@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type {
+  BuildingKind,
   CharacterKind,
   IslandStyleKind,
   PhaseKind,
@@ -30,6 +31,8 @@ export interface IslandCanvasProps {
   floatingItems: SavedItem[];
   hasBundleOnIsland: boolean;
   buildingProgress: number | null;
+  buildingKind?: BuildingKind;
+  extraBuildings?: BuildingKind[];
   anim: string;
   charAt: string;
   nonce: number;
@@ -46,6 +49,8 @@ export const IslandCanvas: React.FC<IslandCanvasProps> = ({
   floatingItems,
   hasBundleOnIsland,
   buildingProgress,
+  buildingKind = 'atelier',
+  extraBuildings = [],
   anim,
   charAt,
   nonce,
@@ -87,7 +92,13 @@ export const IslandCanvas: React.FC<IslandCanvasProps> = ({
       cards,
       bundle: hasBundleOnIsland,
       building: buildingProgress,
-      empty: cards.length === 0 && !hasBundleOnIsland && buildingProgress == null,
+      buildingKind,
+      extraBuildings,
+      empty:
+        cards.length === 0 &&
+        !hasBundleOnIsland &&
+        buildingProgress == null &&
+        extraBuildings.length === 0,
       anim: anim === 'none' ? null : anim,
       charAt,
       onCardTap: (idx: number) => {
@@ -124,6 +135,8 @@ export const IslandCanvas: React.FC<IslandCanvasProps> = ({
             opts.cards,
             opts.bundle,
             opts.building,
+            opts.buildingKind,
+            opts.extraBuildings,
             opts.empty,
             opts.anim,
             opts.charAt,
@@ -160,6 +173,8 @@ export const IslandCanvas: React.FC<IslandCanvasProps> = ({
       opts.cards,
       opts.bundle,
       opts.building,
+      opts.buildingKind,
+      opts.extraBuildings,
       opts.empty,
       opts.anim,
       opts.charAt,

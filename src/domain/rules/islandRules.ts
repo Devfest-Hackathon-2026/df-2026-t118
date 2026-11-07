@@ -1,16 +1,141 @@
 import type {
+  BuildingKind,
   Bundle,
   PhaseKind,
+  ProjectEntity,
   Proposal,
   ProposalStatus,
   SavedItem,
 } from '../models/islandModels';
+
+export interface BuildingLibraryEntry {
+  kind: BuildingKind;
+  code: string;
+  nameJa: string;
+  nameEn: string;
+  signText: string;
+  description: string;
+}
+
+export const BUILDING_LIBRARY_CATALOG: BuildingLibraryEntry[] = [
+  {
+    kind: 'atelier',
+    code: 'B1',
+    nameJa: '制作アトリエ',
+    nameEn: 'Atelier Studio',
+    signText: '制作',
+    description: 'デモ① デザイン・UI・ものづくり（#1〜#10）：パステルドーム屋根と大きな天窓・画架のあるアトリエ',
+  },
+  {
+    kind: 'kitchen_cafe',
+    code: 'B2',
+    nameJa: '小さなベーカリー＆キッチン',
+    nameEn: 'Kitchen & Cafe',
+    signText: '珈琲',
+    description: 'デモ② 料理・食べもの（#11〜#16）：しましまオーニングと煙突・丸テーブルのあるキッチンハウス',
+  },
+  {
+    kind: 'study_tower',
+    code: 'B3',
+    nameJa: '知恵の書斎タワー',
+    nameEn: 'Second Brain Library',
+    signText: '書斎',
+    description: 'デモ③ ツール・学び・仕事（#23〜#32）：2段重ねのネイビー＆ウッド調タワーと積み重なった本のモチーフ',
+  },
+  {
+    kind: 'greenhouse',
+    code: 'B4',
+    nameJa: 'ガラスの温室＆プランター',
+    nameEn: 'Greenhouse Garden',
+    signText: '温室',
+    description: '日常・暮らし・ベランダ栽培（#33〜#38）：半透明ミントのかまぼこ型ドーム屋根と双葉プランター',
+  },
+  {
+    kind: 'boutique',
+    code: 'B5',
+    nameJa: 'ドレッサー・ブティック',
+    nameEn: 'Boutique Salon',
+    signText: '装い',
+    description: 'ファッション・美容（#17〜#22）：ラベンダー＆ピーチのアーチ窓とリボン屋根飾りのサロン',
+  },
+  {
+    kind: 'pavilion',
+    code: 'B6',
+    nameJa: 'カルチャー＆フォトテント',
+    nameEn: 'Hobby Pavilion',
+    signText: '写真',
+    description: '趣味・撮影・お出かけ・音楽（#39〜#48）：多角錐サーカステント屋根とカメラレンズ風丸窓',
+  },
+];
+
+export function inferBuildingKindFromBundle(
+  bundle?: Pick<Bundle, 'intent' | 'tool' | 'targetName' | 'buildingKind'> | null
+): BuildingKind {
+  if (!bundle) return 'atelier';
+  if (bundle.buildingKind) return bundle.buildingKind;
+  const text = `${bundle.intent || ''} ${bundle.tool || ''} ${bundle.targetName || ''}`.toLowerCase();
+
+  if (
+    /レシピ|料理|朝食|おやつ|弁当|カフェ|ドリンク|野菜|作り置き|キッチン|食/.test(text)
+  ) {
+    return 'kitchen_cafe';
+  }
+  if (
+    /obsidian|second brain|情報整理|ノート|勉強|面接|就活|スライド|プレゼン|プログラミング|読書|本|書斎|統計/.test(
+      text
+    )
+  ) {
+    return 'study_tower';
+  }
+  if (
+    /バジル|栽培|プランター|植物|花|ベランダ|机|収納|模様替え|部屋|暮らし|日記|睡眠|温室/.test(
+      text
+    )
+  ) {
+    return 'greenhouse';
+  }
+  if (/コーデ|服|ファッション|髪型|ヘア|ネイル|メイク|リップ|美容|ブティック/.test(text)) {
+    return 'boutique';
+  }
+  if (
+    /写真|撮影|ポーズ|カメラ|音楽|ライブ|プレイリスト|お出かけ|旅行|運動|ストレッチ|筋トレ/.test(
+      text
+    )
+  ) {
+    return 'pavilion';
+  }
+  return 'atelier';
+}
+
+// F05: ユーザーの IANA タイムゾーンに基づき現地暦日（YYYY-MM-DD）を算出する純粋関数
+export function computeLocalDateString(
+  timezone = 'Asia/Tokyo',
+  nowMs = Date.now()
+): string {
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone || 'Asia/Tokyo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date(nowMs));
+    const y = parts.find((p) => p.type === 'year')?.value;
+    const m = parts.find((p) => p.type === 'month')?.value;
+    const d = parts.find((p) => p.type === 'day')?.value;
+    if (y && m && d) return `${y}-${m}-${d}`;
+  } catch {
+    // 無効なタイムゾーン指定時は Asia/Tokyo にフォールバック
+  }
+  const d = new Date(nowMs + 9 * 3600 * 1000);
+  return d.toISOString().slice(0, 10);
+}
 
 // キャラクターの吹き出しテキストをドメイン状態から算出する純粋ルール
 export function computeBubbleText(params: {
   floatingItems: SavedItem[];
   proposalStatus: ProposalStatus;
   activeBundle?: Bundle | null;
+  pendingBundlesCount?: number;
   phase: PhaseKind;
   aiBusyLabel?: string | null;
 }): string {
@@ -19,15 +144,18 @@ export function computeBubbleText(params: {
   const hasUnknown = params.floatingItems.some((c) => !c.intentConfirmed);
 
   if (params.proposalStatus === 'done') {
-    const label = params.activeBundle?.tool || '新しい';
+    const label = params.activeBundle?.tool || params.activeBundle?.targetName || '新しい';
     return `建ったね。${label}の建物。`;
   }
   if (params.proposalStatus === 'doing') return 'いってらっしゃい。15分だけでいいよ。';
   if (params.proposalStatus === 'ready') return 'おはよう。今日の一歩、見てみる？';
-  if (params.proposalStatus === 'skipped') return 'うん、また明日ね。';
+  if (params.proposalStatus === 'skipped') return 'うん、また明日ね。今日はゆっくりしよう。';
   if (params.proposalStatus === 'released') return '手放したよ。海にそっと流しておくね。';
   if (params.proposalStatus === 'mada') return 'だいじょうぶ。次はもう少し小さくしてみるね。';
-  if (params.phase === 'night') return 'おやすみ。集めたものを、ひとつに束ねておくね。';
+  if ((params.pendingBundlesCount || 0) > 0) {
+    return `夜に${params.pendingBundlesCount}つの束ね案を作ったよ。タップして確認してね。`;
+  }
+  if (params.phase === 'night') return 'おやすみ。集めたものを、ProjectやAreaに合わせて束ねておくね。';
   if (hasUnknown && !confirmedFloating) return '「？」のカード、決まったら教えてね。';
   if (confirmedFloating >= 2) return 'たくさん集めたね。「束ねる（夜）」でまとめられるよ。';
   if (confirmedFloating === 1) return '拾っておいたよ。もう1つ集まったら束ねよう。';
@@ -49,13 +177,97 @@ export function computeHeadline(params: {
   return ['A quiet\nisland.', '島はまだ静か'];
 }
 
-// 夜の整理（F5）の対象となる確定済み保存物を抽出するルール（2件以上必要）
+// 夜の整理（F5）の対象となる確定済み保存物を抽出するルール（見るだけ・参考およびArchivesは除外）
 export function selectItemsForNightOrganize(items: SavedItem[]): SavedItem[] {
-  const confirmedUnbundled = items.filter((i) => i.intentConfirmed && !i.bundleId);
-  const confirmedAll = items.filter((i) => i.intentConfirmed && i.para !== 'Archives');
-  if (confirmedUnbundled.length >= 2) return confirmedUnbundled;
-  if (confirmedAll.length >= 2) return confirmedAll.slice(-4);
+  const actionable = items.filter(
+    (i) =>
+      i.intentConfirmed &&
+      i.intentStatus !== 'reference' &&
+      i.para !== 'Resources' &&
+      i.para !== 'Archives'
+  );
+  const unbundled = actionable.filter((i) => !i.bundleId);
+  if (unbundled.length >= 2) return unbundled;
+  if (actionable.length >= 2) return actionable.slice(-4);
   return [];
+}
+
+// F05: 今日の一歩の対象となるアクティブな Project または Bundle を選ぶ純粋ルール
+// 条件:
+// - 見るだけ（reference / Resources）・保留（pending / Someday）・Archive は除外
+// - アクティブな Project に紐づく確定済み保存物があれば、最新更新の Project を優先選択
+// - なければ承認済み（または提案可能）な Bundle を選択
+export function selectTargetBundleForToday(params: {
+  projects: ProjectEntity[];
+  bundles: Bundle[];
+  items: SavedItem[];
+}): Bundle | null {
+  const activeProjects = params.projects.filter((p) => p.status === 'active');
+
+  // アクティブな Project ごとに、行動可能な確定意図を持つ保存物を収集
+  let bestProject: { project: ProjectEntity; items: SavedItem[]; latestAt: number } | null = null;
+  for (const proj of activeProjects) {
+    const projItems = params.items.filter(
+      (i) =>
+        i.intentConfirmed &&
+        i.intentStatus !== 'reference' &&
+        i.para === 'Projects' &&
+        (i.placementId === proj.id || i.bundleId === proj.id)
+    );
+    if (projItems.length > 0) {
+      const latestAt = Math.max(...projItems.map((i) => i.createdAt), proj.updatedAt);
+      if (!bestProject || latestAt > bestProject.latestAt) {
+        bestProject = { project: proj, items: projItems, latestAt };
+      }
+    }
+  }
+
+  if (bestProject) {
+    // 既存の対応 Bundle があればそれを返し、なければ Project から仮想 Bundle を構成
+    const existingBundle = params.bundles.find(
+      (b) =>
+        (b.targetId === bestProject!.project.id || b.id === bestProject!.project.id) &&
+        b.para !== 'Archives'
+    );
+    if (existingBundle) {
+      return existingBundle;
+    }
+    return {
+      id: `proj-bundle-${bestProject.project.id}`,
+      intent: bestProject.project.name,
+      points: [
+        bestProject.project.goal || `${bestProject.project.name}に向けた一歩`,
+        ...bestProject.items.slice(0, 2).map((i) => i.intent || i.title),
+      ],
+      tool: bestProject.project.name.slice(0, 12),
+      itemIds: bestProject.items.map((i) => i.id),
+      para: 'Projects',
+      readyForProposal: true,
+      buildingLevel: 0,
+      targetId: bestProject.project.id,
+      targetName: bestProject.project.name,
+      approvalStatus: 'approved',
+      createdAt: bestProject.project.createdAt,
+      updatedAt: bestProject.latestAt,
+    };
+  }
+
+  // Project 直紐づけがない場合は、既存の Projects 束を優先し、なければアイテムを持つ Areas 束から選択
+  const readyBundle =
+    params.bundles.find(
+      (b) =>
+        b.para === 'Projects' &&
+        b.readyForProposal &&
+        b.approvalStatus !== 'pending' &&
+        b.buildingLevel === 0
+    ) ||
+    params.bundles.find((b) => b.para === 'Projects' && b.readyForProposal) ||
+    params.bundles.find(
+      (b) => b.para === 'Areas' && b.readyForProposal && b.itemIds.length > 0
+    ) ||
+    null;
+
+  return readyBundle;
 }
 
 export function buildFallbackProposal(

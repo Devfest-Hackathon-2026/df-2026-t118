@@ -15,6 +15,7 @@ export const S4ProposalSheet: React.FC<{
 }> = ({
   character,
   proposal,
+  bundle,
   bundleItems,
   onOpenBundle,
   onDoIt,
@@ -25,46 +26,80 @@ export const S4ProposalSheet: React.FC<{
     <div className="prop__head">
       <Avatar kind={character} size={44} />
       <div className="prop__who">
-        <span className="eyebrow eyebrow--accent">TODAY&apos;S ONE STEP</span>
+        <span className="eyebrow eyebrow--accent">TODAY&apos;S PROPOSAL</span>
         <span className="prop__from">{NAMES[character]}から</span>
       </div>
     </div>
     <p className="prop__ask">{proposal.ask}</p>
 
-    <div className="step">
-      <div className="step__top">
-        <span className="eyebrow">YOU&apos;LL DO</span>
-        <span className="chip chip--ink">
-          <Icon name="schedule" />
-          {proposal.minutes} min
+    {/* 主役：ユーザーが保存したビジュアルイメージと、ユーザー自身が選んだ言葉（意図・メモ） */}
+    <div
+      className="prop-bundle-hero"
+      role="button"
+      tabIndex={0}
+      onClick={onOpenBundle}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') onOpenBundle();
+      }}
+    >
+      <div className="prop-bundle-hero__top">
+        <span className="eyebrow" style={{ color: 'var(--accent)' }}>
+          BUNDLED INSPIRATIONS · 集めた{bundleItems.length}つの保存物
+        </span>
+        <span className="chip chip--soft" style={{ fontSize: 11, height: 24, padding: '0 9px' }}>
+          {bundle.targetName || bundle.para}
         </span>
       </div>
-      <span className="step__title">{proposal.title}</span>
-      <span className="step__detail">{proposal.detail}</span>
+
+      <div className="prop-bundle-hero__title">{bundle.intent}</div>
+
+      {/* ビジュアルイメージ（ステッカー／サムネイル）とユーザーの言葉を大きく並べる */}
+      <div className="prop-bundle-hero__cards">
+        {bundleItems.slice(0, 4).map((item) => (
+          <div key={item.id} className="prop-bundle-card">
+            <div
+              className="prop-bundle-card__visual"
+              style={{
+                background: item.stickerDataUrl
+                  ? `#fff url(${item.stickerDataUrl}) center/cover`
+                  : item.imageDataUrl
+                    ? `#fff url(${item.imageDataUrl}) center/cover`
+                    : stripes(item.color, item.c2, 8),
+              }}
+            >
+              <span className="prop-bundle-card__kind">{item.source || item.kind}</span>
+            </div>
+            <div className="prop-bundle-card__words">
+              <span className="prop-bundle-card__intent">
+                {item.intent || item.intents?.[0] || item.title}
+              </span>
+              <span className="prop-bundle-card__sub">
+                {item.rawText || item.title}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="prop-bundle-hero__foot">
+        <span>束ねた保存物を詳しく見る</span>
+        <Icon name="chevron_right" className="icon--muted" />
+      </div>
     </div>
 
-    <button className="stack" onClick={onOpenBundle}>
-      <span className="stack__imgs">
-        {bundleItems.slice(0, 3).map((item) => (
-          <span
-            key={item.id}
-            className="stack__t"
-            style={{
-              background: item.stickerDataUrl
-                ? `#fff url(${item.stickerDataUrl}) center/cover`
-                : stripes(item.color, item.c2, 6),
-            }}
-          />
-        ))}
-      </span>
-      <span className="stack__body">
-        <span className="stack__title">集めた{bundleItems.length}つのまとめ</span>
-        <span className="stack__sub">
-          {bundleItems.map((i) => i.title).join(' · ').slice(0, 28)}
+    {/* 補助情報：AIによる具体的な一歩の提案はトンチンカンになりやすいため、文字を小さく控えめなヒントとして添える */}
+    <div className="prop-hint-small">
+      <div className="prop-hint-small__head">
+        <span className="prop-hint-small__label">
+          <Icon name="auto_awesome" />
+          着手のヒント（目安 {proposal.minutes}分）
         </span>
-      </span>
-      <Icon name="chevron_right" className="icon--muted" />
-    </button>
+      </div>
+      <span className="prop-hint-small__title">{proposal.title}</span>
+      {proposal.detail ? (
+        <span className="prop-hint-small__detail">{proposal.detail}</span>
+      ) : null}
+    </div>
 
     <button className="btn btn--ink btn--pill btn--lg" onClick={onDoIt}>
       やってみる
@@ -114,12 +149,14 @@ export const S4ProposalLetter: React.FC<{
       one step
     </h1>
     <div className="letter__do">
-      <span className="eyebrow">YOU&apos;LL DO</span>
-      <span className="letter__title">{proposal.title}</span>
+      <span className="eyebrow">BUNDLED THEME</span>
+      <span className="letter__title">{bundle.intent}</span>
     </div>
     <div className="row-chips">
-      <span className="chip chip--ink">{proposal.minutes} min</span>
-      {bundle.tool ? <span className="chip chip--soft">{bundle.tool}</span> : null}
+      {bundle.tool ? <span className="chip chip--ink">{bundle.tool}</span> : null}
+      <span className="chip chip--soft" style={{ fontSize: 11.5 }}>
+        ヒント: {proposal.title}（約{proposal.minutes}分）
+      </span>
     </div>
     <div className="letter__spacer" />
     <div className="glass letter__card">
@@ -130,7 +167,7 @@ export const S4ProposalLetter: React.FC<{
         </span>
       </div>
       <button className="linkish linkish--accent" onClick={onOpenBundle}>
-        集めた{bundleItemsCount}つを見る →
+        集めた{bundleItemsCount}つの保存物を見る →
       </button>
       <button className="btn btn--ink btn--pill btn--lg" onClick={onDoIt}>
         やってみる

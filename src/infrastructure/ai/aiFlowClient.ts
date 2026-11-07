@@ -9,21 +9,47 @@ import type {
   NightOrganizeInput,
   NightOrganizeOutput,
 } from '../../../functions/src/domain/schemas';
+import {
+  buildHeuristicAnalysis,
+  runConfirmItemIntent,
+  runMorningPropose,
+  runNightOrganize,
+} from '../../../functions/src/application/aiUseCases';
+import type { RunDiscoveryCycleInput } from '../../../functions/src/domain/proactiveDiscoverySchemas';
+import {
+  runProactiveDiscoveryCycle,
+  type RunDiscoveryCycleResult,
+} from '../../../functions/src/application/proactiveDiscoveryUseCases';
 import { ensureFirebase } from '../firebase/firebaseClient';
 
+export type AiExecutionSource = 'backend-api' | 'cloud-functions' | 'local-engine';
+
+let lastExecutionSource: AiExecutionSource = 'local-engine';
+
+export function getLastAiExecutionSource(): AiExecutionSource {
+  return lastExecutionSource;
+}
+
 async function invokeFlow<TIn, TOut>(flowName: string, input: TIn): Promise<TOut | null> {
-  // 1. まず開発サーバー / Hosting リライトの /api/<flowName> を試す
+  // 1. まず開発サーバー（Vite Node ミドルウェア） / Hosting リライトの /api/<flowName> を試す
   try {
     const res = await fetch(`/api/${flowName}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
     });
-    if (res.ok) {
-      return (await res.json()) as TOut;
+    const contentType = res.headers.get('content-type') || '';
+    if (res.ok && contentType.includes('application/json')) {
+      const json = (await res.json()) as TOut & { result?: TOut };
+      lastExecutionSource = 'backend-api';
+      // Cloud Functions onCall 互換レスポンス ({ result: ... }) と直接 JSON の両方に対応
+      if (json && typeof json === 'object' && 'result' in json && json.result) {
+        return json.result;
+      }
+      return json;
     }
   } catch {
-    // Cloud Functions へフォールバック
+    // Cloud Functions SDK へフォールバック
   }
 
   // 2. Firebase Cloud Functions (httpsCallable) が設定されていれば呼ぶ
@@ -32,12 +58,16 @@ async function invokeFlow<TIn, TOut>(flowName: string, input: TIn): Promise<TOut
     try {
       const fn = httpsCallable<TIn, TOut>(fb.fns, flowName);
       const res = await fn(input);
-      if (res.data) return res.data;
+      if (res.data) {
+        lastExecutionSource = 'cloud-functions';
+        return res.data;
+      }
     } catch {
-      // クライアントフォールバックへ
+      // クライアント共通エンジンへフォールバック
     }
   }
 
+  lastExecutionSource = 'local-engine';
   return null;
 }
 
@@ -46,37 +76,20 @@ export async function apiAnalyzeItem(input: AnalyzeItemInput): Promise<AnalyzeIt
   if (remote && remote.intents?.length >= 3) {
     return remote;
   }
-  const raw = (input.rawText || input.fileName || input.url || '気になったアイデア').trim();
-  const title = raw.replace(/^https?:\/\/[^/]+\/?/, '').slice(0, 22) || '気になったアイデア';
-  const isUrl = Boolean(input.url);
-  const isImg = Boolean(input.imageDataUrl);
-  return {
-    kind: isUrl
-      ? input.url?.includes('instagram')
-        ? 'INSTAGRAM'
-        : 'ARTICLE'
-      : isImg
-        ? 'SCREENSHOT'
-        : 'NOTE',
-    title,
-    source: isUrl
-      ? new URL(input.url!).hostname.replace(/^www\./, '')
-      : isImg
-        ? 'カメラロール'
-        : 'メモ',
-    note: isImg
-      ? '画像の文字と雰囲気から読み取ったよ'
-      : isUrl
-        ? 'リンク先のタイトルから読み取ったよ'
-        : '書いてくれたメモから読み取ったよ',
-    color: '#2f5fd8',
-    c2: '#5a80e2',
-    intents: [
-      `${title.slice(0, 14)}を試してみる`,
-      `${title.slice(0, 14)}を15分だけ調べてみる`,
-      `${title.slice(0, 14)}を次の制作の参考にする`,
-    ],
-  };
+  let domain = 'Web';
+  if (input.url) {
+    try {
+      domain = new URL(input.url).hostname.replace(/^www\./, '');
+    } catch {
+      domain = 'Web';
+    }
+  }
+  return buildHeuristicAnalysis(input, {
+    fetched: false,
+    domain,
+    title: '',
+    description: '',
+  });
 }
 
 export async function apiConfirmIntent(input: ConfirmIntentInput): Promise<ConfirmIntentOutput> {
@@ -85,30 +98,13 @@ export async function apiConfirmIntent(input: ConfirmIntentInput): Promise<Confi
     input
   );
   if (remote?.embedding?.length) return remote;
-  return { embedding: [] };
+  return runConfirmItemIntent(input);
 }
 
 export async function apiNightOrganize(input: NightOrganizeInput): Promise<NightOrganizeOutput> {
   const remote = await invokeFlow<NightOrganizeInput, NightOrganizeOutput>('nightOrganize', input);
   if (remote && remote.bundles) return remote;
-  if (input.items.length < 2) return { bundles: [] };
-  const primary = input.items[0];
-  return {
-    bundles: [
-      {
-        intent: primary.intent,
-        points: [
-          `「${primary.title}」など${input.items.length}件の保存が集まっている`,
-          'まずは15分だけ形にしてみる',
-          '気負わず入り口の1ステップから始める',
-        ],
-        tool: primary.title.slice(0, 12),
-        itemIds: input.items.map((x) => x.id),
-        para: 'Projects',
-        readyForProposal: true,
-      },
-    ],
-  };
+  return runNightOrganize(input);
 }
 
 export async function apiMorningPropose(input: MorningProposeInput): Promise<MorningProposeOutput> {
@@ -117,15 +113,16 @@ export async function apiMorningPropose(input: MorningProposeInput): Promise<Mor
     input
   );
   if (remote && remote.title) return remote;
-  const isMada = input.previousStatus === 'mada';
-  return {
-    ask: isMada
-      ? `「${input.bundle.intent}」、今日は5分だけ入り口を作ってみない？`
-      : `今日は、${input.bundle.intent.replace(/してみる$/, '')}してみない？`,
-    title: isMada
-      ? `${input.bundle.tool}を開いて最初の1つだけ試す`
-      : `${input.bundle.tool}の最初の準備を15分だけやる`,
-    detail: input.bundle.points[0] || 'まずは小さな一歩だけで大丈夫だよ。',
-    minutes: isMada ? 5 : 15,
-  };
+  return runMorningPropose(input);
+}
+
+export async function apiRunDiscoveryCycle(
+  input: RunDiscoveryCycleInput
+): Promise<RunDiscoveryCycleResult> {
+  const remote = await invokeFlow<RunDiscoveryCycleInput, RunDiscoveryCycleResult>(
+    'runDiscoveryCycle',
+    input
+  );
+  if (remote && remote.report) return remote;
+  return runProactiveDiscoveryCycle(input);
 }

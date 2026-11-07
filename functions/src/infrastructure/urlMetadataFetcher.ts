@@ -1,6 +1,7 @@
-// URL から OGP・タイトル・本文抜粋を取得する。
-// Instagram 等で取得が拒否される場合もエラーにせず URL 構造から推定できるようにする。
+// URL から OGP・タイトル・本文抜粋を安全に取得する（R04: SSRF 対策 & 取得失敗の正直な返却）。
+// 取得が拒否・失敗した場合は fetched: false を返し、読めたふりをしない。
 export async function fetchUrlMetadata(rawUrl: string): Promise<{
+  fetched: boolean;
   domain: string;
   title: string;
   description: string;
@@ -10,30 +11,47 @@ export async function fetchUrlMetadata(rawUrl: string): Promise<{
   try {
     parsed = new URL(rawUrl);
   } catch {
-    return { domain: 'web', title: rawUrl, description: '', snippet: '' };
+    return { fetched: false, domain: 'web', title: rawUrl, description: '', snippet: '' };
   }
-  // SSRF 対策: http/https 以外およびプライベート IP へのアクセスを拒否する
+  // SSRF 対策: http/https 以外およびプライベート IP・ループバック・メタデータ IP へのアクセスを拒否
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    return { domain: 'web', title: rawUrl, description: '', snippet: '' };
+    return { fetched: false, domain: 'web', title: rawUrl, description: '', snippet: '' };
   }
   const host = parsed.hostname.toLowerCase();
   if (
     host === 'localhost' ||
+    host === '::1' ||
+    host === '[::1]' ||
+    host === '0.0.0.0' ||
     host.startsWith('127.') ||
     host.startsWith('10.') ||
     host.startsWith('192.168.') ||
     host.startsWith('169.254.') ||
-    host.endsWith('.internal')
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(host) ||
+    host.endsWith('.internal') ||
+    host.endsWith('.local')
   ) {
-    return { domain: host, title: rawUrl, description: '', snippet: '' };
+    return { fetched: false, domain: host, title: rawUrl, description: '', snippet: '' };
   }
 
   const domain = host.replace(/^www\./, '');
+  // Instagram 等のログイン壁があるドメインは公式 API なしで投稿本文を取得できないため、読めたふりをしない（F02/R04）
+  if (domain.includes('instagram.com')) {
+    return {
+      fetched: false,
+      domain: 'Instagram',
+      title: 'Instagramの投稿リンク',
+      description: '',
+      snippet: '',
+    };
+  }
+
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 4500);
+    const timer = setTimeout(() => controller.abort(), 4000);
     const res = await fetch(rawUrl, {
       signal: controller.signal,
+      redirect: 'follow',
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; HannariIslandBot/1.0)',
         Accept: 'text/html,application/xhtml+xml',
@@ -42,6 +60,7 @@ export async function fetchUrlMetadata(rawUrl: string): Promise<{
     clearTimeout(timer);
     if (!res.ok) {
       return {
+        fetched: false,
         domain,
         title: decodeURIComponent(parsed.pathname).slice(1) || domain,
         description: '',
@@ -71,7 +90,9 @@ export async function fetchUrlMetadata(rawUrl: string): Promise<{
       .trim()
       .slice(0, 1000);
 
+    const hasContent = Boolean(ogTitle || ogDesc || bodyText.length > 20);
     return {
+      fetched: hasContent,
       domain,
       title: ogTitle || domain,
       description: ogDesc.slice(0, 400),
@@ -79,6 +100,7 @@ export async function fetchUrlMetadata(rawUrl: string): Promise<{
     };
   } catch {
     return {
+      fetched: false,
       domain,
       title: decodeURIComponent(parsed.pathname.split('/').filter(Boolean).pop() || domain),
       description: '',

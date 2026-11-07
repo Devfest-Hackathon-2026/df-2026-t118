@@ -1,6 +1,6 @@
 # アーキテクチャ
 
-状態: 確定（2026-11-07）。技術スタック・バックエンド・実アプリ化仕様は [`decisions/002-web-stack.md`](decisions/002-web-stack.md) および [`decisions/003-backend-and-data-model.md`](decisions/003-backend-and-data-model.md) で承認済み（[ADR-001](decisions/001-tech-stack.md) は廃止）。
+状態: 確定（2026-11-07）。技術スタック・バックエンド・実アプリ化仕様・Project/Area 初回アンケート＆即時紐づけ仕様は [`decisions/002-web-stack.md`](decisions/002-web-stack.md)、[`decisions/003-backend-and-data-model.md`](decisions/003-backend-and-data-model.md)、[`decisions/004-project-area-and-onboarding.md`](decisions/004-project-area-and-onboarding.md) で承認済み（[ADR-001](decisions/001-tech-stack.md) は廃止）。
 要件は [`requirements.md`](requirements.md)、PC／スマホ両対応の画面遷移・ユースケース解説は [`ui-and-usecases.md`](ui-and-usecases.md) を参照。
 
 ---
@@ -154,37 +154,45 @@ hannari-hustlers/
 
 ## 4. 処理フローとバックエンド API
 
-### A. 保存時パイプライン（F1〜F4・同期）
+### A. 初回アンケートと保存時パイプライン（F01, F1〜F4・同期）
 
-1. **入力（S3 Step 1）**: ユーザーが「＋ 保存する」ボタン（または PC 画面への画像ドラッグ＆ドロップ）から画像・URL・テキストメモを入力する。
+0. **初回アンケート（F01: `S1Welcome`）**:
+   - カード型 4 問（Q1: 今進めていること Project、Q2: 日々大切にしたいこと Area、Q3: よく保存するもの、Q4: しまに期待すること）を任意入力（全スキップ可）で受け付け、`ProjectEntity` / `AreaEntity` と対応する初期 `Bundle`、および `UserSurveyProfile` を作成する。後から設定シート（`SettingsSheet`）や一覧シート（`S8SearchSheet`）でも Project / Area の追加・編集が可能。
+1. **入力（S3 Step 1）**:
+   - ユーザーが「＋ 保存する」ボタン（または PC 画面への画像ドラッグ＆ドロップ）から画像（PNG / JPEG / WebP、10MB 以下）・URL・テキストメモを入力する。
+   - AI 送信同意トグル（`aiConsentGranted`）を備え、同意 OFF の場合は AI へ送信せず手動入力・手動分類で保存を完結できる（R02）。
 2. **ステッカー切り抜き**: 画像がある場合は Application 層経由で [`stickerMaker.ts`](../src/infrastructure/media/stickerMaker.ts) が `window.Island.makeSticker` を呼び、3D カード用の切り抜きステッカー（DataURL）を生成する。
 3. **AI 解析と意図 3 候補生成（F2 / F3: `analyzeItem`）**:
-   - URL が含まれる場合、[`urlMetadataFetcher.ts`](../functions/src/infrastructure/urlMetadataFetcher.ts) がプライベート IP を拒否（SSRF 対策）した上で OGP・本文テキストを取得し、`<untrusted_content>` タグで隔離して [`geminiClient.ts`](../functions/src/infrastructure/geminiClient.ts) (`gemini-2.5-flash`) に渡す。
+   - URL が含まれる場合、[`urlMetadataFetcher.ts`](../functions/src/infrastructure/urlMetadataFetcher.ts) が IPv4 / IPv6 プライベートアドレスを拒否（SSRF 対策）した上で OGP・本文テキストを取得し、`<untrusted_content>` タグで隔離して [`geminiClient.ts`](../functions/src/infrastructure/geminiClient.ts) (`gemini-2.5-flash`) に渡す。Instagram 等のログイン壁や取得失敗時は `urlFetched: false` を返し、読めたふりをせず UI で誠実に案内する（R04）。
    - Gemini が Zod スキーマ（[`AnalyzeItemOutputSchema`](../functions/src/domain/schemas.ts)）に従い、タイトル・種別・要約メモ・**「やりたいことの 1 文」候補 3 つ**を返す。
-4. **意図の確定と Embedding 計算（F3 / F4: `confirmItemIntent`）**:
-   - ユーザーが 3 候補から 1 つをタップ（または自由編集）すると、`text-embedding-004` で 768 次元の埋め込みベクトルを計算し、[`firestoreRepository.ts`](../src/infrastructure/firebase/firestoreRepository.ts) が Firestore (`users/{uid}/items/{itemId}`) および `localStorage` に保存する。
+4. **意図の確定・即時 Project/Area 紐づけ・Embedding 計算（F3 / F4: `confirmItemIntent`）**:
+   - ユーザーは 3 候補から 1 つをタップ、自由編集、**「見るだけ・参考（Resources）」**、または **「あとで（Someday ？カード）」** を選べる。
+   - 保存先チップで Project / Area を明示選択できるほか、「AI にまかせる」場合は `confirmItemIntent` が `targets`（登録済み Project / Area 一覧）と照合し、`confidence === 'clear'` のとき即時紐づけを行う（曖昧な場合は Someday に保留）。
+   - `text-embedding-004` で 768 次元の埋め込みベクトルを計算し、[`firestoreRepository.ts`](../src/infrastructure/firebase/firestoreRepository.ts) が Firestore (`users/{uid}/items/{itemId}`) および `localStorage` に保存する。
    - 3D の島の上空にカードが浮かび上がる（`anim: 'addCard'`）。
-   - 「あとで」を選んだ場合は `intentConfirmed: false` として「？」付きカードを島に浮かべ、後からタップして確定できる（UC10）。
 
-### B. 夜の整理パイプライン（F5: `nightOrganize`）
+### B. 夜の整理パイプライン（提案・承認型 F5: `nightOrganize`）
 
 - **起動契機**: 定時ジョブ（`scheduledNightOrganize`: 毎日 23:00 JST）またはヘッダーの **「束ねる（夜）」** ボタン。
 - **処理**:
-  1. [`clustering.ts`](../functions/src/domain/clustering.ts) が意図確定済み（`intentConfirmed: true`）の保存物同士の Embedding コサイン類似度を計算し、類似する保存物をクラスタリングする。
-  2. クラスタごとに [`aiUseCases.ts`](../functions/src/application/aiUseCases.ts) が Gemini (`gemini-2.5-flash`) で **束の代表意図・AI 要点 3 つ・関連ツール名・PARA カテゴリ** を生成する。
-  3. 島が夜のライティング（`phase: 'night'`）に切り替わり、空に浮かんでいたカードが島の地面へ降りて **束のスポット（テント・木箱・ピンボード）** になる（`anim: 'settle'`）。
+  1. [`clustering.ts`](../functions/src/domain/clustering.ts) が意図確定済み（`intentConfirmed: true`、かつ `intentMode !== 'reference'`）の未整理保存物同士の Embedding コサイン類似度を計算し、クラスタリングする。
+  2. クラスタごとに [`aiUseCases.ts`](../functions/src/application/aiUseCases.ts) がユーザーの登録済み Project / Area（`targets`）および Gemini (`gemini-2.5-flash`) を用いて **束の代表意図・AI 要点 3 つ・関連ツール名・PARA カテゴリ** を生成し、`approvalStatus: 'pending'`（提案状態）として保存する。
+  3. 島が夜のライティング（`phase: 'night'`）に切り替わり、空に浮かんでいたカードが島の地面へ降りて **束のスポット** になる（`anim: 'settle'`）。ユーザーは束の詳細シート（`S5BundleSheet`）で 1 タップ承認（または別 Project / Area への変更）を行える。
 
-### C. 朝の 1 提案パイプライン（F6: `morningPropose`）
+### C. 今日の一歩パイプライン（F6 / F05: `morningPropose`）
 
-- **起動契機**: 定時ジョブ（`scheduledMorningPropose`: 毎日 08:00 JST）またはヘッダーの **「今日の一歩（朝）」** ボタン。
+- **起動契機**:
+  1. **ホーム表示時の自動生成（オンデマンド・1 日 1 件）**: ホーム（`S2Home`）を開いた際、ユーザーの現地タイムゾーン日付（`localDate: YYYY-MM-DD`、初期値 `Asia/Tokyo`）に対する提案がまだ無ければ、自動的に最大 1 件の提案を生成する。
+  2. **デモ・手動トリガー**: ヘッダーの **「今日の一歩（朝）」** ボタン、または定時ジョブ（`scheduledMorningPropose`: 毎日 08:00 JST）。
 - **処理**:
-  1. 提案可能な束（保存 2 件以上・意図確定済み・Archives 以外）から 1 つを選び、Gemini で **15 分以内で終わる具体的な最初の一歩**（前回「まだ」だった場合は **5 分で終わるさらに小さな一歩**）を生成する。
-  2. 島が朝の光（`phase: 'morning'`）になり、上部に通知バナー・下部ドックに「見てみる」ボタンが表示される。
+  1. [`selectTargetBundleForToday`](../src/domain/rules/islandRules.ts) がアクティブな Project（優先）または Area のうち、実行可能な意図確定済みアイテムを持つ束を 1 つ選び、Gemini で **15 分以内で終わる具体的な最初の一歩**（前回「まだ」だった場合は **5 分で終わるさらに小さな一歩**）を生成する。提案対象がない日は無理に生成しない（提案ゼロを許容）。
+  2. 上部に通知バナー・下部ドックに「見てみる」ボタンが表示される。
 
-### D. 振り返りと島の成長（F8）
+### D. 振り返りと島の成長・アーカイブ復元・完全削除（F7 / F8 / R03）
 
 - 提案で「やってみる」を選んだあと、下部ドックの **「できた？」** から振り返りシート（[`S6ReflectSheet`](../src/presentation/screens/S6ReflectSheet.tsx)）を開く。
-- **「できた」** を選んで「島にもどる（建物を建てる）」を押すと、束のスポットが **完成した建物（ドームアトリエ・温室・灯台・時計塔など）** に建て替わる（`anim: 'build'`）。
+- **「できた」** を選んで「島にもどる（建物を建てる）」を押すと、[`reflectOnProposal`](../src/application/usecases/useIslandUseCases.ts) が冪等（同一提案での二重加算防止）に `buildingLevel` を +1 し、束のスポットが **完成した建物（ドームアトリエ・温室・灯台・時計塔など）** に建て替わる（`anim: 'build'`）。
+- **アーカイブと削除の区別**: `Archives` に入った束や保存物は `S5BundleSheet` / `S9ItemSheet` から **1 タップで元の置き場へ復元** できる。また、`S9ItemSheet` の「保存物を削除する」から Firestore ドキュメントと Cloud Storage 画像の双方を完全削除できる。
 
 ---
 
@@ -192,7 +200,7 @@ hannari-hustlers/
 
 | Flow / 関数名 | 種別 | 定義ファイル | 入出力（Zod スキーマ） |
 |---|---|---|---|
-| `analyzeItem` | Callable / HTTP (`/api/analyzeItem`) | [`callableHandlers.ts`](../functions/src/presentation/callableHandlers.ts) / [`aiUseCases.ts`](../functions/src/application/aiUseCases.ts) | In: `{ url?, rawText?, imageDataUrl?, fileName? }`<br>Out: `{ kind, title, source, note, color, c2, intents: [string, string, string] }` |
-| `confirmItemIntent` | Callable / HTTP (`/api/confirmItemIntent`) | [`callableHandlers.ts`](../functions/src/presentation/callableHandlers.ts) / [`aiUseCases.ts`](../functions/src/application/aiUseCases.ts) | In: `{ title, intent, note? }`<br>Out: `{ embedding: number[] }` |
-| `nightOrganize` | Callable / HTTP + `onSchedule` (`23:00 JST`) | [`callableHandlers.ts`](../functions/src/presentation/callableHandlers.ts) / [`scheduledHandlers.ts`](../functions/src/presentation/scheduledHandlers.ts) | In: `{ items: SavedItem[] }`<br>Out: `{ bundles: BundleDraft[] }` |
+| `analyzeItem` | Callable / HTTP (`/api/analyzeItem`) | [`callableHandlers.ts`](../functions/src/presentation/callableHandlers.ts) / [`aiUseCases.ts`](../functions/src/application/aiUseCases.ts) | In: `{ url?, rawText?, imageDataUrl?, fileName? }`<br>Out: `{ kind, title, source, note, color, c2, intents: [string, string, string], urlFetched?: boolean }` |
+| `confirmItemIntent` | Callable / HTTP (`/api/confirmItemIntent`) | [`callableHandlers.ts`](../functions/src/presentation/callableHandlers.ts) / [`aiUseCases.ts`](../functions/src/application/aiUseCases.ts) | In: `{ title, intent, note?, targets? }`<br>Out: `{ embedding: number[], placementMatch?: { targetId, targetCategory, confidence, reason } }` |
+| `nightOrganize` | Callable / HTTP + `onSchedule` (`23:00 JST`) | [`callableHandlers.ts`](../functions/src/presentation/callableHandlers.ts) / [`scheduledHandlers.ts`](../functions/src/presentation/scheduledHandlers.ts) | In: `{ items: SavedItem[], targets? }`<br>Out: `{ bundles: BundleDraft[] }` |
 | `morningPropose` | Callable / HTTP + `onSchedule` (`08:00 JST`) | [`callableHandlers.ts`](../functions/src/presentation/callableHandlers.ts) / [`scheduledHandlers.ts`](../functions/src/presentation/scheduledHandlers.ts) | In: `{ bundle, previousStatus?, characterName }`<br>Out: `{ ask, title, detail, minutes }` |

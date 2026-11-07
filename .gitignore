@@ -17,6 +17,7 @@ ui-debug.log
 node_modules/
 .next/
 dist/
+functions/lib/
 build/
 .turbo/
 # Python

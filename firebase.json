@@ -3,6 +3,22 @@
     "public": "dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/README.md"],
     "rewrites": [
+      {
+        "source": "/api/analyzeItem",
+        "function": { "functionId": "analyzeItem", "region": "asia-northeast1" }
+      },
+      {
+        "source": "/api/confirmItemIntent",
+        "function": { "functionId": "confirmItemIntent", "region": "asia-northeast1" }
+      },
+      {
+        "source": "/api/nightOrganize",
+        "function": { "functionId": "nightOrganize", "region": "asia-northeast1" }
+      },
+      {
+        "source": "/api/morningPropose",
+        "function": { "functionId": "morningPropose", "region": "asia-northeast1" }
+      },
       { "source": "**", "destination": "/index.html" }
     ],
     "headers": [

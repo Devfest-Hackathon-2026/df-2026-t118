@@ -1,11 +1,33 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ユーザー本人のみ自分の島の状態とサブコレクション（items / bundles / proposals）を読み書き可能
+    // ユーザー本人のみ自分の島の状態と本人管理サブコレクションを読み書き可能
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
-      match /{allSubcollections=**} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      // サーバー（Admin SDK / Cloud Functions）管理のジョブ・検証済みレポート・通知送信キューは
+      // 本人のみ読み取り可とし、クライアントからの直接改ざん（write）を禁止する
+      match /researchJobs/{jobId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+      match /researchReports/{reportId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+      match /notificationOutbox/{notificationId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+      match /discoveryCandidates/{candidateId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+
+      // ユーザーが操作・編集・削除できるサブコレクション（items / bundles / proposals / projects / areas / settings / profileFacts / questions / confirmedSubjects / curatedSources / discoveryFeedback / notificationSubscriptions）
+      match /{subcollection}/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid
+          && !(subcollection in ['researchJobs', 'researchReports', 'notificationOutbox', 'discoveryCandidates']);
       }
     }
   }

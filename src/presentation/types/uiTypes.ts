@@ -1,4 +1,5 @@
 import type {
+  BuildingKind,
   CharacterKind,
   IslandStyleKind,
   ItemKind,
@@ -15,6 +16,7 @@ export type SheetKind =
   | 'item'
   | 'search'
   | 'sort'
+  | 'inbox'
   | 'settings';
 
 export interface SaveDraft {
@@ -24,6 +26,7 @@ export interface SaveDraft {
   stickerDataUrl?: string;
   aspect?: number;
   fileName?: string;
+  selectedTargetId?: string | null;
   analyzed?: {
     kind: ItemKind;
     title: string;
@@ -32,6 +35,8 @@ export interface SaveDraft {
     color: string;
     c2: string;
     intents: string[];
+    urlFetched?: boolean;
+    resourceTopic?: string;
   };
 }
 
@@ -39,6 +44,7 @@ export function emptyDraft(): SaveDraft {
   return {
     url: '',
     rawText: '',
+    selectedTargetId: null,
   };
 }
 
@@ -59,6 +65,8 @@ export interface IslandMountOpts {
   cards: IslandCardOpt[];
   bundle: boolean;
   building: number | null;
+  buildingKind?: BuildingKind;
+  extraBuildings?: BuildingKind[];
   empty: boolean;
   anim: string | null;
   charAt: string;

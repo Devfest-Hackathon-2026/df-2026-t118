@@ -8,8 +8,10 @@ import {
 } from 'firebase/firestore';
 import { STORAGE_KEY } from '../../domain/constants/islandConstants';
 import type {
+  AreaEntity,
   Bundle,
   PersistedState,
+  ProjectEntity,
   Proposal,
   SavedItem,
 } from '../../domain/models/islandModels';
@@ -43,12 +45,14 @@ export function clearLocalState(): void {
   }
 }
 
-// Firestore の users/{uid} とサブコレクション（items / bundles / proposals）から状態を復元する
+// Firestore の users/{uid} とサブコレクション（items / bundles / proposals / projects / areas）から状態を復元する
 export async function loadFromFirestore(): Promise<{
   meta?: Record<string, unknown>;
   items: SavedItem[];
   bundles: Bundle[];
   proposals: Proposal[];
+  projects: ProjectEntity[];
+  areas: AreaEntity[];
 } | null> {
   const fb = ensureFirebase();
   const uid = await ensureAnonymousUser();
@@ -56,11 +60,20 @@ export async function loadFromFirestore(): Promise<{
 
   try {
     const userRef = doc(fb.db, 'users', uid);
-    const [userSnap, itemsSnap, bundlesSnap, proposalsSnap] = await Promise.all([
+    const [
+      userSnap,
+      itemsSnap,
+      bundlesSnap,
+      proposalsSnap,
+      projectsSnap,
+      areasSnap,
+    ] = await Promise.all([
       getDoc(userRef),
       getDocs(collection(userRef, 'items')),
       getDocs(collection(userRef, 'bundles')),
       getDocs(collection(userRef, 'proposals')),
+      getDocs(collection(userRef, 'projects')),
+      getDocs(collection(userRef, 'areas')),
     ]);
 
     const items = itemsSnap.docs
@@ -72,8 +85,20 @@ export async function loadFromFirestore(): Promise<{
     const proposals = proposalsSnap.docs
       .map((d) => d.data() as Proposal)
       .sort((a, b) => b.createdAt - a.createdAt);
+    const projects = projectsSnap.docs
+      .map((d) => d.data() as ProjectEntity)
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+    const areas = areasSnap.docs
+      .map((d) => d.data() as AreaEntity)
+      .sort((a, b) => b.updatedAt - a.updatedAt);
 
-    if (!userSnap.exists() && !items.length && !bundles.length) {
+    if (
+      !userSnap.exists() &&
+      !items.length &&
+      !bundles.length &&
+      !projects.length &&
+      !areas.length
+    ) {
       return null;
     }
 
@@ -82,6 +107,8 @@ export async function loadFromFirestore(): Promise<{
       items,
       bundles,
       proposals,
+      projects,
+      areas,
     };
   } catch {
     return null;
@@ -94,10 +121,12 @@ export async function syncToFirestore(payload: {
   items: SavedItem[];
   bundles: Bundle[];
   proposals: Proposal[];
-}): Promise<void> {
+  projects?: ProjectEntity[];
+  areas?: AreaEntity[];
+}): Promise<boolean> {
   const fb = ensureFirebase();
   const uid = getCachedUid() || (await ensureAnonymousUser());
-  if (!fb || !uid) return;
+  if (!fb || !uid) return true;
 
   try {
     const userRef = doc(fb.db, 'users', uid);
@@ -114,9 +143,30 @@ export async function syncToFirestore(payload: {
       }),
       ...payload.bundles.map((b) => setDoc(doc(userRef, 'bundles', b.id), b, { merge: true })),
       ...payload.proposals.map((p) => setDoc(doc(userRef, 'proposals', p.id), p, { merge: true })),
+      ...(payload.projects || []).map((pr) =>
+        setDoc(doc(userRef, 'projects', pr.id), pr, { merge: true })
+      ),
+      ...(payload.areas || []).map((ar) =>
+        setDoc(doc(userRef, 'areas', ar.id), ar, { merge: true })
+      ),
     ]);
+    return true;
   } catch {
-    // ネットワーク一時エラー時は localStorage 側で保持されているため握りつぶす
+    return false;
+  }
+}
+
+// 保存物の単体削除（R03 / T19）
+export async function deleteItemFromFirestore(itemId: string): Promise<boolean> {
+  const fb = ensureFirebase();
+  const uid = getCachedUid() || (await ensureAnonymousUser());
+  if (!fb || !uid) return true;
+  try {
+    const userRef = doc(fb.db, 'users', uid);
+    await deleteDoc(doc(userRef, 'items', itemId));
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -126,15 +176,20 @@ export async function clearFirestoreUserData(): Promise<void> {
   if (!fb || !uid) return;
   try {
     const userRef = doc(fb.db, 'users', uid);
-    const [itemsSnap, bundlesSnap, proposalsSnap] = await Promise.all([
-      getDocs(collection(userRef, 'items')),
-      getDocs(collection(userRef, 'bundles')),
-      getDocs(collection(userRef, 'proposals')),
-    ]);
+    const [itemsSnap, bundlesSnap, proposalsSnap, projectsSnap, areasSnap] =
+      await Promise.all([
+        getDocs(collection(userRef, 'items')),
+        getDocs(collection(userRef, 'bundles')),
+        getDocs(collection(userRef, 'proposals')),
+        getDocs(collection(userRef, 'projects')),
+        getDocs(collection(userRef, 'areas')),
+      ]);
     await Promise.all([
       ...itemsSnap.docs.map((d) => deleteDoc(d.ref)),
       ...bundlesSnap.docs.map((d) => deleteDoc(d.ref)),
       ...proposalsSnap.docs.map((d) => deleteDoc(d.ref)),
+      ...projectsSnap.docs.map((d) => deleteDoc(d.ref)),
+      ...areasSnap.docs.map((d) => deleteDoc(d.ref)),
       deleteDoc(userRef),
     ]);
   } catch {

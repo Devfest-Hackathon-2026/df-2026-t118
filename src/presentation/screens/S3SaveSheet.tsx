@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
-import type { CharacterKind } from '../../domain/models/islandModels';
+import type {
+  AreaEntity,
+  CharacterKind,
+  ProjectEntity,
+} from '../../domain/models/islandModels';
 import type { SaveDraft } from '../types/uiTypes';
 import { Avatar, Icon } from '../common/UiParts';
+
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB (F02)
 
 export const S3SaveSheet: React.FC<{
   character: CharacterKind;
@@ -9,6 +15,10 @@ export const S3SaveSheet: React.FC<{
   draft: SaveDraft;
   analyzing: boolean;
   resolvingMode: boolean;
+  aiConsentGranted?: boolean;
+  projects?: ProjectEntity[];
+  areas?: AreaEntity[];
+  onToggleAiConsent?: (granted: boolean) => void;
   onChangeDraft: (patch: Partial<SaveDraft>) => void;
   onUploadImage: (file: File) => Promise<{
     imageDataUrl: string;
@@ -17,6 +27,7 @@ export const S3SaveSheet: React.FC<{
   }>;
   onAnalyze: () => void;
   onConfirmIntent: (intentText: string) => void;
+  onSaveReference?: () => void;
   onSaveLater: () => void;
   onBackToInput: () => void;
 }> = ({
@@ -25,10 +36,15 @@ export const S3SaveSheet: React.FC<{
   draft,
   analyzing,
   resolvingMode,
+  aiConsentGranted = true,
+  projects = [],
+  areas = [],
+  onToggleAiConsent,
   onChangeDraft,
   onUploadImage,
   onAnalyze,
   onConfirmIntent,
+  onSaveReference,
   onSaveLater,
   onBackToInput,
 }) => {
@@ -36,10 +52,28 @@ export const S3SaveSheet: React.FC<{
   const [customOpen, setCustomOpen] = useState<boolean>(false);
   const [customText, setCustomText] = useState<string>('');
   const [uploadingImg, setUploadingImg] = useState<boolean>(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+
+  const activeProjects = projects.filter((p) => p.status === 'active');
+  const activeAreas = areas.filter((a) => a.status === 'active');
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setFileError(null);
+
+    if (file.size > MAX_IMAGE_BYTES) {
+      setFileError('画像サイズが上限（10 MB）を超えています。別の画像を選んでください。');
+      return;
+    }
+    const lowerName = file.name.toLowerCase();
+    if (lowerName.endsWith('.heic') || lowerName.endsWith('.heif')) {
+      setFileError(
+        'HEIC形式はブラウザによって表示できない場合があります。PNG / JPEG / WebP 画像を選んでください。'
+      );
+      return;
+    }
+
     setUploadingImg(true);
     try {
       const processed = await onUploadImage(file);
@@ -76,7 +110,7 @@ export const S3SaveSheet: React.FC<{
         <label className="photo save-input__drop">
           <input
             type="file"
-            accept="image/*"
+            accept="image/png,image/jpeg,image/webp,image/*"
             onChange={handleFileChange}
             style={{ display: 'none' }}
           />
@@ -91,11 +125,15 @@ export const S3SaveSheet: React.FC<{
               <span>
                 {uploadingImg
                   ? 'ステッカーに切り抜き中...'
-                  : 'スクショ・写真を選ぶ（または画面へドロップ）'}
+                  : 'スクショ・写真を選ぶ（PNG/JPEG/WebP・10MBまで）'}
               </span>
             </>
           )}
         </label>
+
+        {fileError ? (
+          <span style={{ fontSize: '12px', color: '#c0392b' }}>{fileError}</span>
+        ) : null}
 
         <div className="save-input__field">
           <span className="eyebrow eyebrow--muted">URL · リンク</span>
@@ -124,19 +162,47 @@ export const S3SaveSheet: React.FC<{
           </div>
         </div>
 
+        {onToggleAiConsent ? (
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '12px',
+              color: 'var(--muted)',
+              cursor: 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={aiConsentGranted}
+              onChange={(e) => onToggleAiConsent(e.target.checked)}
+            />
+            <span>
+              Gemini AI に入力内容を送信して意図候補を提案してもらう（オフ時は手動保存）
+            </span>
+          </label>
+        ) : null}
+
         <button
           className="btn btn--ink btn--pill btn--lg"
           disabled={!canSubmit}
           onClick={onAnalyze}
         >
           <Icon name="auto_awesome" />
-          <span>{analyzing ? 'Gemini が読み取り中...' : '次へ（やりたいことの候補を出す）'}</span>
+          <span>
+            {analyzing
+              ? 'Gemini が読み取り中...'
+              : aiConsentGranted
+                ? '次へ（やりたいことの候補を出す）'
+                : '次へ（手動で意図と保存先を選ぶ）'}
+          </span>
         </button>
       </div>
     );
   }
 
-  // Step 2: Gemini が出した 3 つの「やりたいことの 1 文」候補からタップで確定する画面（F3）
+  // Step 2: Gemini が出した 3 つの「やりたいことの 1 文」候補 + Project/Area 即時紐づけ（F02 / F03）
   const analyzed = draft.analyzed || {
     kind: 'NOTE' as const,
     title: draft.rawText || draft.url || '保存したアイテム',
@@ -144,7 +210,7 @@ export const S3SaveSheet: React.FC<{
     note: '内容からやりたいことの候補を出したよ',
     color: '#f7a6d6',
     c2: '#f9c6e4',
-    intents: ['実際に試してみる', '15分だけ調べてみる', '参考として取っておく'],
+    intents: ['実際に試してみる', '自分の制作に取り入れる', '参考資料として残しておく'],
   };
 
   const handlePick = (idx: number, text: string) => {
@@ -166,11 +232,59 @@ export const S3SaveSheet: React.FC<{
         <div className="save__meta">
           <span className="eyebrow eyebrow--accent">
             {analyzed.kind} · {analyzed.source}
+            {analyzed.resourceTopic ? ` · テーマ: ${analyzed.resourceTopic}` : ''}
           </span>
           <span className="save__title">{analyzed.title}</span>
           <span className="save__note">{analyzed.note}</span>
         </div>
       </div>
+
+      {draft.url && analyzed.urlFetched === false ? (
+        <div
+          className="card"
+          style={{ padding: '10px 12px', fontSize: '12px', color: 'var(--muted)' }}
+        >
+          ※リンク先の本文は自動取得できなかったため、URLのみ記録します（必要なら「入力を直す」からメモやスクショを補足できます）
+        </div>
+      ) : null}
+
+      {activeProjects.length > 0 || activeAreas.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <span className="eyebrow eyebrow--muted">
+            LINK TO PROJECT / AREA · 保存先の紐づけ（任意）
+          </span>
+          <div className="row-chips">
+            <button
+              className={`chip${!draft.selectedTargetId ? ' chip--ink' : ' chip--soft'}`}
+              onClick={() => onChangeDraft({ selectedTargetId: null })}
+            >
+              AIで自動照合 / 保留
+            </button>
+            {activeProjects.map((proj) => (
+              <button
+                key={proj.id}
+                className={`chip${
+                  draft.selectedTargetId === proj.id ? ' chip--ink' : ' chip--soft'
+                }`}
+                onClick={() => onChangeDraft({ selectedTargetId: proj.id })}
+              >
+                Project: {proj.name}
+              </button>
+            ))}
+            {activeAreas.map((area) => (
+              <button
+                key={area.id}
+                className={`chip${
+                  draft.selectedTargetId === area.id ? ' chip--ink' : ' chip--soft'
+                }`}
+                onClick={() => onChangeDraft({ selectedTargetId: area.id })}
+              >
+                Area: {area.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="save__ask">
         <Avatar kind={character} size={30} />
@@ -213,7 +327,7 @@ export const S3SaveSheet: React.FC<{
         </div>
       ) : null}
 
-      <div className="save__foot">
+      <div className="save__foot" style={{ flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {!resolvingMode ? (
             <button className="linkish" onClick={onBackToInput}>
@@ -226,9 +340,20 @@ export const S3SaveSheet: React.FC<{
             自分で書きなおす
           </button>
         </div>
-        <button className="btn btn--ghost btn--pill btn--sm" onClick={onSaveLater}>
-          あとで
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {onSaveReference ? (
+            <button
+              className="btn btn--ghost btn--pill btn--sm"
+              onClick={onSaveReference}
+              title="行動提案には使わず、参考資料（Resources）として残します"
+            >
+              見るだけ・参考
+            </button>
+          ) : null}
+          <button className="btn btn--ghost btn--pill btn--sm" onClick={onSaveLater}>
+            あとで
+          </button>
+        </div>
       </div>
     </>
   );

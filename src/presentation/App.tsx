@@ -25,6 +25,7 @@ import { S7SortView } from './screens/S7SortView';
 import { S8SearchSheet } from './screens/S8SearchSheet';
 import { S9ItemSheet } from './screens/S9ItemSheet';
 import { SettingsSheet } from './screens/SettingsSheet';
+import { DiscoveryInboxSheet } from './screens/DiscoveryInboxSheet';
 
 export const App: React.FC = () => {
   const {
@@ -41,12 +42,24 @@ export const App: React.FC = () => {
     charAt,
     nonce,
     buildingProgress,
+    setBuildingProgress,
+    buildingKind,
+    setBuildingKind,
+    builtBuildings,
+    setBuiltBuildings,
     character,
     setCharacter,
     islandStyle,
     setIslandStyle,
     proposalStyle,
     setProposalStyle,
+    profile,
+    projects,
+    areas,
+    discoverySettings,
+    confirmedSubjects,
+    curatedSources,
+    researchReports,
     items,
     bundles,
     proposals,
@@ -74,12 +87,17 @@ export const App: React.FC = () => {
     flash,
     openSheet,
     closeSheet,
+    handleCompleteOnboarding,
+    handleAddProject,
+    handleAddArea,
+    handleUpdateProfile,
     handleProcessImageFile,
     handleOpenSave,
     handleAnalyzeDraft,
     commitSaveItem,
     handleCardTap,
     handleGoNight,
+    handleApproveBundle,
     handleGoMorning,
     handleOpenProposal,
     handleDoIt,
@@ -91,14 +109,35 @@ export const App: React.FC = () => {
     handleDecideSomedayItem,
     handleUpdateItemIntent,
     handleChangeItemPara,
+    handleRestoreItem,
+    handleDeleteItem,
     handleUpdateBundleIntent,
     handleReleaseBundle,
+    handleCompleteBundleToArchive,
+    handleRestoreBundle,
+    handleLoadUseCasePreset,
+    handleUpdateDiscoverySettings,
+    handleAddOrUpdateSubject,
+    handleDeleteSubject,
+    handleAnswerDiscoveryQuestion,
+    handleReactToDiscoveryCard,
+    handleRunDiscoveryNow,
     handleResetAll,
   } = useIslandUseCases();
 
+  const inboxCount = researchReports.filter(
+    (r) =>
+      (r.card && !r.feedback) ||
+      (r.question && r.question.status === 'pending')
+  ).length;
+
   const floatingItems = items.filter((i) => i.floating && i.para !== 'Archives');
+  const pendingBundles = bundles.filter(
+    (b) => b.approvalStatus === 'pending' && b.para !== 'Archives'
+  );
   const activeBundle =
     bundles.find((b) => b.id === activeBundleId) ||
+    pendingBundles[0] ||
     bundles.find((b) => b.para !== 'Archives') ||
     null;
   const activeProposal =
@@ -115,8 +154,10 @@ export const App: React.FC = () => {
 
   const bundleItems = items.filter((it) =>
     currentBundle.itemIds.length
-      ? currentBundle.itemIds.includes(it.id)
-      : it.bundleId === currentBundle.id
+      ? currentBundle.itemIds.includes(it.id) ||
+        it.bundleId === currentBundle.id ||
+        it.placementId === currentBundle.id
+      : it.bundleId === currentBundle.id || it.placementId === currentBundle.id
   );
 
   const vars = shellColors(phase);
@@ -142,6 +183,8 @@ export const App: React.FC = () => {
         floatingItems={floatingItems}
         hasBundleOnIsland={hasBundleOnIsland}
         buildingProgress={buildingProgress}
+        buildingKind={buildingKind}
+        extraBuildings={builtBuildings.length > 1 ? builtBuildings.slice(1, 4) : []}
         anim={anim}
         charAt={charAt}
         nonce={nonce}
@@ -152,6 +195,7 @@ export const App: React.FC = () => {
               floatingItems,
               proposalStatus,
               activeBundle,
+              pendingBundlesCount: pendingBundles.length,
               phase,
               aiBusyLabel,
             })
@@ -159,7 +203,7 @@ export const App: React.FC = () => {
         }
       />
 
-      {/* S1 はじめて */}
+      {/* S1 はじめて（初回オンボーディング 4問 + スキップ可） */}
       <div className="layer layer--s1">
         {screen === 's1' ? (
           <S1Welcome
@@ -168,6 +212,7 @@ export const App: React.FC = () => {
               setScreen('home');
               setAnim('none');
             }}
+            onCompleteOnboarding={handleCompleteOnboarding}
           />
         ) : null}
       </div>
@@ -183,16 +228,26 @@ export const App: React.FC = () => {
             proposalStatus={proposalStatus}
             activeProposal={activeProposal}
             activeBundle={activeBundle}
+            pendingBundlesCount={pendingBundles.length}
             somedayCount={somedayItems.length}
+            inboxCount={inboxCount}
             hint={hint}
             aiBusyLabel={aiBusyLabel}
             onOpenSearch={() => openSheet('search')}
             onOpenSave={handleOpenSave}
             onOpenProposal={handleOpenProposal}
             onOpenReflect={() => openSheet('reflect')}
+            onOpenPendingBundle={() => {
+              if (pendingBundles[0]) {
+                setActiveBundleId(pendingBundles[0].id);
+                setBundleFromProposal(false);
+                openSheet('bundle');
+              }
+            }}
             onTriggerNight={handleGoNight}
             onTriggerMorning={handleGoMorning}
             onOpenSort={handleOpenSort}
+            onOpenInbox={() => openSheet('inbox')}
             onOpenSettings={() => openSheet('settings')}
           />
         ) : null}
@@ -249,7 +304,7 @@ export const App: React.FC = () => {
       {/* PC: 右ガラスドロワー / スマホ: ボトムシート（S3 保存 / S4 提案 / S5 束詳細 / S6 振り返り / S8 検索 / S9 保存物詳細 / 設定） */}
       <div
         className={`sheetwrap${shown ? ' is-shown' : ''}${
-          sheet === 'bundle' || sheet === 'search' ? ' sheet--full' : ''
+          sheet === 'bundle' || sheet === 'search' || sheet === 'inbox' ? ' sheet--full' : ''
         }`}
         hidden={!inDrawerOrSheet}
       >
@@ -275,10 +330,24 @@ export const App: React.FC = () => {
                 draft={draft}
                 analyzing={analyzing}
                 resolvingMode={Boolean(resolvingItemId)}
+                aiConsentGranted={profile.aiConsentGranted}
+                projects={projects}
+                areas={areas}
+                onToggleAiConsent={(granted) =>
+                  handleUpdateProfile({
+                    aiConsentGranted: granted,
+                    aiConsentAt: granted ? Date.now() : null,
+                  })
+                }
                 onChangeDraft={(patch) => setDraft((prev) => ({ ...prev, ...patch }))}
                 onUploadImage={handleProcessImageFile}
                 onAnalyze={handleAnalyzeDraft}
                 onConfirmIntent={(text) => commitSaveItem(text, false)}
+                onSaveReference={() =>
+                  commitSaveItem('参考資料として眺める・残しておく', false, {
+                    isReference: true,
+                  })
+                }
                 onSaveLater={() => commitSaveItem(null, true)}
                 onBackToInput={() => setSaveStep('input')}
               />
@@ -300,6 +369,8 @@ export const App: React.FC = () => {
               <S5BundleSheet
                 bundle={currentBundle}
                 items={bundleItems}
+                projects={projects}
+                areas={areas}
                 canGoBackToProposal={bundleFromProposal}
                 onBack={() => {
                   if (bundleFromProposal) {
@@ -314,7 +385,10 @@ export const App: React.FC = () => {
                   setSheet('item');
                 }}
                 onUpdateBundleIntent={handleUpdateBundleIntent}
+                onApproveBundle={handleApproveBundle}
                 onReleaseBundle={handleReleaseBundle}
+                onCompleteBundleToArchive={handleCompleteBundleToArchive}
+                onRestoreBundle={handleRestoreBundle}
               />
             ) : sheet === 'reflect' ? (
               <S6ReflectSheet
@@ -333,8 +407,12 @@ export const App: React.FC = () => {
                     ? bundles.find((b) => b.id === activeItem.bundleId) || null
                     : null
                 }
+                projects={projects}
+                areas={areas}
                 onUpdateIntent={handleUpdateItemIntent}
                 onChangePara={handleChangeItemPara}
+                onRestoreItem={handleRestoreItem}
+                onDeleteItem={handleDeleteItem}
                 onOpenBundle={(bundleId) => {
                   setActiveBundleId(bundleId);
                   setBundleFromProposal(false);
@@ -356,18 +434,73 @@ export const App: React.FC = () => {
                   setActiveItemId(itemId);
                   setSheet('item');
                 }}
+                onAddProject={handleAddProject}
+                onAddArea={handleAddArea}
+                onRestoreItem={handleRestoreItem}
+                onRestoreBundle={handleRestoreBundle}
+              />
+            ) : sheet === 'inbox' ? (
+              <DiscoveryInboxSheet
+                character={character}
+                projects={projects}
+                areas={areas}
+                settings={discoverySettings}
+                confirmedSubjects={confirmedSubjects}
+                curatedSources={curatedSources}
+                reports={researchReports}
+                busy={Boolean(aiBusyLabel)}
+                onUpdateSettings={handleUpdateDiscoverySettings}
+                onAddOrUpdateSubject={handleAddOrUpdateSubject}
+                onDeleteSubject={handleDeleteSubject}
+                onAnswerQuestion={handleAnswerDiscoveryQuestion}
+                onReactToCard={handleReactToDiscoveryCard}
+                onRunDiscoveryNow={handleRunDiscoveryNow}
+                onClose={() => closeSheet()}
               />
             ) : sheet === 'settings' ? (
               <SettingsSheet
                 character={character}
                 islandStyle={islandStyle}
                 proposalStyle={proposalStyle}
+                buildingKind={buildingKind}
+                builtBuildings={builtBuildings}
+                profile={profile}
+                projects={projects}
+                areas={areas}
                 firebaseConnected={firebaseConnected}
                 totalItemsCount={items.length}
                 bundlesCount={bundles.length}
                 onChangeCharacter={setCharacter}
                 onChangeIslandStyle={setIslandStyle}
                 onChangeProposalStyle={setProposalStyle}
+                onSelectBuildingKind={(kind) => {
+                  setBuildingKind(kind);
+                  setBuiltBuildings([kind]);
+                  setBuildingProgress(1);
+                  setAnim('none');
+                  closeSheet();
+                  flash(`建物ライブラリ「${kind}」を島に配置しました`);
+                }}
+                onSelectGrowthStage={(blds) => {
+                  if (blds.length > 0) {
+                    setBuildingKind(blds[0]);
+                    setBuiltBuildings(blds);
+                    setBuildingProgress(1);
+                    setAnim('none');
+                    closeSheet();
+                    flash(`島の成長ステージ（${blds.length}棟）を表示しました`);
+                  }
+                }}
+                onUpdateProfile={handleUpdateProfile}
+                onAddProject={handleAddProject}
+                onAddArea={handleAddArea}
+                onLoadUseCasePreset={handleLoadUseCasePreset}
+                onOpenDiscoveryInbox={() => setSheet('inbox')}
+                onReopenOnboarding={() => {
+                  closeSheet(() => {
+                    setScreen('s1');
+                  });
+                }}
                 onResetAll={handleResetAll}
               />
             ) : null}

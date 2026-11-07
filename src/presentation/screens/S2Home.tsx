@@ -19,16 +19,20 @@ export const S2Home: React.FC<{
   proposalStatus: ProposalStatus;
   activeProposal: Proposal | null;
   activeBundle: Bundle | null;
+  pendingBundlesCount?: number;
   somedayCount: number;
+  inboxCount?: number;
   hint: boolean;
   aiBusyLabel: string | null;
   onOpenSearch: () => void;
   onOpenSave: () => void;
   onOpenProposal: () => void;
   onOpenReflect: () => void;
+  onOpenPendingBundle?: () => void;
   onTriggerNight: () => void;
   onTriggerMorning: () => void;
   onOpenSort: () => void;
+  onOpenInbox?: () => void;
   onOpenSettings: () => void;
 }> = ({
   character,
@@ -37,16 +41,20 @@ export const S2Home: React.FC<{
   floatingItems,
   proposalStatus,
   activeBundle,
+  pendingBundlesCount = 0,
   somedayCount,
+  inboxCount = 0,
   hint,
   aiBusyLabel,
   onOpenSearch,
   onOpenSave,
   onOpenProposal,
   onOpenReflect,
+  onOpenPendingBundle,
   onTriggerNight,
   onTriggerMorning,
   onOpenSort,
+  onOpenInbox,
   onOpenSettings,
 }) => {
   const [headEn, headTitle] = computeHeadline({ floatingItems, proposalStatus, phase });
@@ -60,14 +68,21 @@ export const S2Home: React.FC<{
     primaryCta = { label: '見てみる', onClick: onOpenProposal };
   } else if (proposalStatus === 'doing') {
     primaryCta = { label: 'できた？', onClick: onOpenReflect };
+  } else if (pendingBundlesCount > 0 && onOpenPendingBundle) {
+    primaryCta = {
+      label: `束ね案を確認 (${pendingBundlesCount})`,
+      onClick: onOpenPendingBundle,
+    };
   }
 
   const tag =
     proposalStatus === 'ready' || proposalStatus === 'doing'
       ? 'ONE STEP'
-      : aiBusyLabel
-        ? 'GEMINI AI'
-        : null;
+      : pendingBundlesCount > 0
+        ? 'CLUSTER PROPOSAL'
+        : aiBusyLabel
+          ? 'GEMINI AI'
+          : null;
 
   return (
     <>
@@ -83,7 +98,7 @@ export const S2Home: React.FC<{
             className="navpill glass"
             onClick={onTriggerNight}
             disabled={Boolean(aiBusyLabel)}
-            title="浮かんでいる保存物を AI で束ねる (F5)"
+            title="浮かんでいる保存物を AI で Project / Area に束ね提案する (F5)"
           >
             <Icon name="waves" />
             <span className="navpill__label">束ねる（夜）</span>
@@ -93,7 +108,7 @@ export const S2Home: React.FC<{
             className="navpill glass"
             onClick={onTriggerMorning}
             disabled={Boolean(aiBusyLabel)}
-            title="育った束から今日の一歩を提案してもらう (F6)"
+            title="育った Project / 束から今日の一歩を提案してもらう (F6)"
           >
             <Icon name="auto_awesome" />
             <span className="navpill__label">今日の一歩（朝）</span>
@@ -119,11 +134,24 @@ export const S2Home: React.FC<{
             <span className="navpill__label">一覧・検索</span>
           </button>
 
+          {onOpenInbox ? (
+            <button
+              className="navpill glass"
+              onClick={onOpenInbox}
+              title="連絡箱・好きなアーティストの公演発見・個別同意 (A01〜A04)"
+            >
+              <Icon name="mail" />
+              <span className="navpill__label">
+                連絡箱{inboxCount > 0 ? ` (${inboxCount})` : ''}
+              </span>
+            </button>
+          ) : null}
+
           <button
             className="iconbtn iconbtn--glass"
             onClick={onOpenSettings}
             aria-label="設定"
-            title="キャラクター・島の質感設定"
+            title="Project / Area 編集・AI同意・島の質感設定"
           >
             <Icon name="more_horiz" />
           </button>
@@ -147,6 +175,7 @@ export const S2Home: React.FC<{
             floatingItems,
             proposalStatus,
             activeBundle,
+            pendingBundlesCount,
             phase,
             aiBusyLabel,
           })}
