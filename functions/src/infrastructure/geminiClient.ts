@@ -24,6 +24,21 @@ export function parseJsonSafely<T>(rawText: string): T | null {
   }
 }
 
+// 生成に使うモデル。先頭から順に試す。
+// gemini-2.5-flash / gemini-2.0-flash は「no longer available to new users」で 404 になり、
+// 本番で全リクエストが黙ってフォールバックに落ちていたため差し替えた。
+// 2 番目の gemini-flash-latest は常に最新の flash を指すエイリアスで、同じ事故の再発を防ぐための保険。
+const GENERATION_MODELS = ['gemini-3.8-flash', 'gemini-flash-latest'] as const;
+
+// 埋め込みモデル。embedContent は v1 のみで提供されており、v1beta では 404 になる。
+const EMBEDDING_MODEL = 'gemini-embedding-001';
+const EMBEDDING_DIMENSIONS = 768;
+
+// 失敗を黙って握りつぶすと、本番で AI が動いていないことに気づけない。理由だけ残す（APIキーは出さない）。
+function warnGeminiFailure(stage: string, detail: string) {
+  console.warn(`[gemini] ${stage} に失敗しました: ${detail}`);
+}
+
 // Gemini REST API をタイムアウト制御・モデルフォールバック付きで呼び出す共通アダプタ
 export async function callGeminiJson<T>(params: {
   apiKey?: string;
@@ -53,10 +68,9 @@ export async function callGeminiJson<T>(params: {
     }
   }
 
-  const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
   const timeoutMs = params.timeoutMs ?? 8000;
 
-  for (const model of models) {
+  for (const model of GENERATION_MODELS) {
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -79,23 +93,32 @@ export async function callGeminiJson<T>(params: {
       });
       clearTimeout(timer);
       if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        warnGeminiFailure(`生成（${model}）`, `HTTP ${res.status} ${body.slice(0, 200)}`);
         continue;
       }
       const json = (await res.json()) as {
         candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
       };
-      const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+      // 思考を返すモデルは parts[0] が text を持たないことがあるため、text を持つ最初の part を使う
+      const text = json.candidates?.[0]?.content?.parts?.find((part) => part.text)?.text;
       const parsed = text ? parseJsonSafely<T>(text) : null;
       if (parsed) return parsed;
-    } catch {
+      warnGeminiFailure(`生成（${model}）`, 'レスポンスを JSON として解釈できませんでした');
+    } catch (err) {
       clearTimeout(timer);
+      warnGeminiFailure(
+        `生成（${model}）`,
+        err instanceof Error ? err.message : 'ネットワークまたはタイムアウト'
+      );
     }
   }
 
+  warnGeminiFailure('生成', 'すべてのモデルで失敗したため、ルールベースの結果を返します');
   return null;
 }
 
-// Gemini Embedding API (text-embedding-004) で 768 次元のベクトルを取得する。
+// Gemini Embedding API で 768 次元のベクトルを取得する。
 // API キー未設定時やオフライン時は、セマンティック概念＋文字 N-gram から決定論的ベクトルを生成してクラスタリングが動くようにする。
 export async function computeEmbedding(text: string, apiKey?: string): Promise<number[]> {
   const key = apiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
@@ -103,14 +126,15 @@ export async function computeEmbedding(text: string, apiKey?: string): Promise<n
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 5000);
     try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${encodeURIComponent(key)}`;
+      const endpoint = `https://generativelanguage.googleapis.com/v1/models/${EMBEDDING_MODEL}:embedContent?key=${encodeURIComponent(key)}`;
       const res = await fetch(endpoint, {
         method: 'POST',
         signal: controller.signal,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'models/text-embedding-004',
+          model: `models/${EMBEDDING_MODEL}`,
           taskType: 'SEMANTIC_SIMILARITY',
+          outputDimensionality: EMBEDDING_DIMENSIONS,
           content: { parts: [{ text }] },
         }),
       });
@@ -120,9 +144,17 @@ export async function computeEmbedding(text: string, apiKey?: string): Promise<n
         if (data.embedding?.values && data.embedding.values.length > 0) {
           return data.embedding.values;
         }
+        warnGeminiFailure('埋め込み', 'レスポンスにベクトルが含まれていませんでした');
+      } else {
+        const body = await res.text().catch(() => '');
+        warnGeminiFailure('埋め込み', `HTTP ${res.status} ${body.slice(0, 200)}`);
       }
-    } catch {
+    } catch (err) {
       clearTimeout(timer);
+      warnGeminiFailure(
+        '埋め込み',
+        err instanceof Error ? err.message : 'ネットワークまたはタイムアウト'
+      );
     }
   }
   return deterministicFallbackEmbedding(text, 64);
