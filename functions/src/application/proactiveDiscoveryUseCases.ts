@@ -30,7 +30,8 @@ export async function runProactiveDiscoveryCycle(
     searchAdapter?: DiscoverySearchAdapter;
     existingJob?: ResearchJob | null;
     nowMs?: number;
-    recheckConsentBeforePublish?: () => boolean;
+    // サーバー側では Firestore を読み直して確認するため、非同期も受ける
+    recheckConsentBeforePublish?: () => boolean | Promise<boolean>;
   }
 ): Promise<RunDiscoveryCycleResult> {
   const nowMs = options?.nowMs ?? Date.now();
@@ -322,7 +323,10 @@ export async function runProactiveDiscoveryCycle(
   });
 
   // 公開・通知直前の同意撤回・停止再確認（Section 4: 送信直前の同意取消・Project削除を再検証）
-  if (options?.recheckConsentBeforePublish && !options.recheckConsentBeforePublish()) {
+  if (
+    options?.recheckConsentBeforePublish &&
+    !(await options.recheckConsentBeforePublish())
+  ) {
     const job: ResearchJob = {
       jobId,
       uid,

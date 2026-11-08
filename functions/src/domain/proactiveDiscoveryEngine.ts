@@ -514,6 +514,12 @@ export function isWithinQuietHours(
   return currentHour >= quietStart && currentHour < quietEnd;
 }
 
+// A04: ロック画面に Project 名・質問の回答・検索内容を出さない汎用文面。
+// 通知キュー（notificationOutbox）に積むときも同じ文面を使うため、ここを 1 箇所にする。
+export const DISCOVERY_NOTIFICATION_GENERIC_TITLE = 'しまからお知らせがあるよ';
+export const DISCOVERY_NOTIFICATION_GENERIC_BODY =
+  '連絡箱に新しい発見メモが届いています。時間のあるときに眺めてみてね。';
+
 export function evaluateNotificationDispatch(params: {
   settings: DiscoverySettings;
   currentHour: number;
@@ -530,9 +536,8 @@ export function evaluateNotificationDispatch(params: {
   genericBody: string;
 } {
   const { settings, currentHour, hasActionableReport, projectStillActive } = params;
-  // A04: ロック画面にProject名・質問の回答・検索内容を出さない汎用文面
-  const genericTitle = 'しまからお知らせがあるよ';
-  const genericBody = '連絡箱に新しい発見メモが届いています。時間のあるときに眺めてみてね。';
+  const genericTitle = DISCOVERY_NOTIFICATION_GENERIC_TITLE;
+  const genericBody = DISCOVERY_NOTIFICATION_GENERIC_BODY;
 
   if (!hasActionableReport || !projectStillActive || settings.paused) {
     return {

@@ -37,6 +37,13 @@
         }
       },
       {
+        "source": "/api/runDiscoveryCycle",
+        "function": {
+          "functionId": "runDiscoveryCycle",
+          "region": "asia-northeast1"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

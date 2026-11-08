@@ -1,4 +1,4 @@
-import { initializeApp, getApps } from 'firebase-admin/app';
+import { initializeApp, getApp } from 'firebase-admin/app';
 import { getFirestore, type QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import type {
   BundleDraft,
@@ -7,6 +7,12 @@ import type {
   SavedItemSummarySchema,
 } from '../domain/schemas.js';
 import type { z } from 'zod';
+import type {
+  DiscoverySettings,
+  ResearchJob,
+  ResearchReport,
+} from '../domain/proactiveDiscoverySchemas.js';
+import type { DiscoveryStore } from '../application/discoveryPersistenceUseCases.js';
 
 type SavedItemSummary = z.infer<typeof SavedItemSummarySchema>;
 
@@ -18,8 +24,14 @@ export interface UserBatchContext {
   targets: ProjectAreaTarget[];
 }
 
+// getApps() は名前付きアプリでも埋まるため、「1つでもあるなら初期化済み」と判断すると
+// 既定アプリが無いまま getFirestore() に進み、app/no-app で落ちる。
+// 本番で実際に踏んだ（この関数と同じ経路を使う夜/朝の定時バッチも巻き込まれていた）。
+// 既定アプリの有無だけを見る。
 function getDb() {
-  if (!getApps().length) {
+  try {
+    getApp();
+  } catch {
     initializeApp();
   }
   return getFirestore();
@@ -224,4 +236,95 @@ export async function saveMorningProposalForUser(
     },
     { merge: true }
   );
+}
+
+// ---------- 能動発見（A01〜A04）のサーバー管理サブコレクション ----------
+// firestore.rules が researchJobs / researchReports / notificationOutbox を
+// 「クライアント write 禁止・サーバー管理」と宣言している。その書く主体がここ。
+
+// Firestore は undefined を含む書き込みを例外にする。レポートやカードには
+// Zod の optional（question.answer, feedback.reason など）が未設定のまま混ざるため、
+// undefined のキーだけ落としてから書く。
+function stripUndefined<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+export function createFirestoreDiscoveryStore(): DiscoveryStore {
+  return {
+    async getDiscoverySettings(uid) {
+      const snap = await getDb().collection('users').doc(uid).get();
+      if (!snap.exists) return null;
+      const stored = (snap.data() || {}).discoverySettings;
+      if (!stored || typeof stored !== 'object') return null;
+      return stored as Partial<DiscoverySettings>;
+    },
+
+    async getLatestReportForDate(uid, localDate) {
+      // localDate の等価条件に executedAt の並び替えを足すと複合インデックスが必要になる。
+      // 1 日あたり数件なので、取得してからメモリ上で最新を選ぶ。
+      const snap = await getDb()
+        .collection('users')
+        .doc(uid)
+        .collection('researchReports')
+        .where('localDate', '==', localDate)
+        .limit(5)
+        .get();
+      if (snap.empty) return null;
+      const reports = snap.docs.map((d: QueryDocumentSnapshot) => d.data() as ResearchReport);
+      return reports.sort((a, b) => b.executedAt - a.executedAt)[0] || null;
+    },
+
+    async getJobForPeriod(uid, localDate) {
+      const snap = await getDb()
+        .collection('users')
+        .doc(uid)
+        .collection('researchJobs')
+        .where('periodKey', '==', localDate)
+        .limit(5)
+        .get();
+      if (snap.empty) return null;
+      const jobs = snap.docs.map((d: QueryDocumentSnapshot) => d.data() as ResearchJob);
+      return jobs.sort((a, b) => b.startedAt - a.startedAt)[0] || null;
+    },
+
+    async listRecentDedupeKeys(uid, limitCount) {
+      const snap = await getDb()
+        .collection('users')
+        .doc(uid)
+        .collection('researchReports')
+        .orderBy('executedAt', 'desc')
+        .limit(limitCount)
+        .get();
+      return snap.docs
+        .map((d: QueryDocumentSnapshot) => (d.data() as ResearchReport).card?.dedupeKey)
+        .filter((k): k is string => Boolean(k));
+    },
+
+    async saveJob(uid, job) {
+      // doc id は buildStableResearchJobId の安定 ID。同じ日・同じ Project なら上書きになる（冪等）
+      await getDb()
+        .collection('users')
+        .doc(uid)
+        .collection('researchJobs')
+        .doc(job.jobId)
+        .set(stripUndefined(job), { merge: true });
+    },
+
+    async saveReport(uid, report) {
+      await getDb()
+        .collection('users')
+        .doc(uid)
+        .collection('researchReports')
+        .doc(report.id)
+        .set(stripUndefined(report), { merge: true });
+    },
+
+    async enqueueNotification(uid, notification) {
+      await getDb()
+        .collection('users')
+        .doc(uid)
+        .collection('notificationOutbox')
+        .add(stripUndefined(notification));
+    },
+  };
 }

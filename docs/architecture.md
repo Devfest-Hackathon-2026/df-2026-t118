@@ -29,7 +29,7 @@ flowchart TB
 
     subgraph BE["バックエンド（functions/src/ · 4層レイヤードアーキテクチャ）"]
         BE_PRES["presentation/<br>callableHandlers.ts · scheduledHandlers.ts"]
-        BE_APP["application/<br>aiUseCases.ts · scheduledBatchUseCases.ts · proactiveDiscoveryUseCases.ts"]
+        BE_APP["application/<br>aiUseCases.ts · scheduledBatchUseCases.ts<br>proactiveDiscoveryUseCases.ts · discoveryPersistenceUseCases.ts"]
         BE_INFRA["infrastructure/<br>geminiClient.ts · urlMetadataFetcher.ts · firestoreAdminRepository.ts · discoverySearchAdapter.ts"]
         BE_DOM["domain/<br>schemas.ts (Zod) · clustering.ts (Cosine Similarity)<br>proactiveDiscoveryEngine.ts · proactiveDiscoverySchemas.ts"]
     end
@@ -132,14 +132,15 @@ hannari-hustlers/
         ├── application/              # 【Application 層】AI ユースケースと定時バッチオーケストレーション
         │   ├── aiUseCases.ts         # F2/F3 解析・意図確定 Embedding・F5 夜の束ね・F6 朝の提案ユースケース
         │   ├── scheduledBatchUseCases.ts # 全ユーザーの夜整理・朝提案バッチ処理ユースケース
-        │   └── proactiveDiscoveryUseCases.ts # 能動発見サイクル（同意確認 → 検索 → 公式照合 → カード/質問生成）
+        │   ├── proactiveDiscoveryUseCases.ts # 能動発見サイクル（同意確認 → 検索 → 公式照合 → カード/質問生成）
+        │   └── discoveryPersistenceUseCases.ts # 能動発見の結果を Firestore に残す層（冪等・同意再確認・通知キュー）
         ├── infrastructure/           # 【Infrastructure 層】外部通信・LLM・Firestore Admin アダプタ
         │   ├── urlMetadataFetcher.ts # SSRF 対策付き URL 取得 & <untrusted_content> 隔離
         │   ├── geminiClient.ts       # Gemini REST 呼び出し（JSON 生成・埋め込み）・モデルフォールバック・タイムアウト
-        │   ├── firestoreAdminRepository.ts # Firebase Admin Firestore 読み書きリポジトリ
+        │   ├── firestoreAdminRepository.ts # Firebase Admin Firestore 読み書きリポジトリ（夜/朝バッチ + 能動発見の保存）
         │   └── discoverySearchAdapter.ts   # 外部検索アダプタ。現状は固定の参照データのみ（実際の検索 API は呼ばない）
-        └── presentation/             # 【Presentation 層】Cloud Functions トリガー受付・バリデーション
-            ├── callableHandlers.ts   # onCall ハンドラ（Genkit Flow 定義は残骸。実行経路外・使わない方針）
+        └── presentation/             # 【Presentation 層】Cloud Functions トリガー受付・認証・バリデーション
+            ├── callableHandlers.ts   # onCall ハンドラ（認証必須。Genkit Flow 定義は残骸。実行経路外・使わない方針）
             └── scheduledHandlers.ts  # Cloud Scheduler 定時トリガー (23:00 JST / 08:00 JST)
 ```
 
@@ -218,3 +219,17 @@ hannari-hustlers/
 | `confirmItemIntent` | Callable / HTTP (`/api/confirmItemIntent`) | [`callableHandlers.ts`](../functions/src/presentation/callableHandlers.ts) / [`aiUseCases.ts`](../functions/src/application/aiUseCases.ts) | In: `{ title, intent, note?, targets? }`<br>Out: `{ embedding: number[], placementMatch?: { targetId, targetCategory, confidence, reason } }` |
 | `nightOrganize` | Callable / HTTP + `onSchedule` (`23:00 JST`) | [`callableHandlers.ts`](../functions/src/presentation/callableHandlers.ts) / [`scheduledHandlers.ts`](../functions/src/presentation/scheduledHandlers.ts) | In: `{ items: SavedItem[], targets? }`<br>Out: `{ bundles: BundleDraft[] }` |
 | `morningPropose` | Callable / HTTP + `onSchedule` (`08:00 JST`) | [`callableHandlers.ts`](../functions/src/presentation/callableHandlers.ts) / [`scheduledHandlers.ts`](../functions/src/presentation/scheduledHandlers.ts) | In: `{ bundle, previousStatus?, characterName }`<br>Out: `{ ask, title, detail, minutes }` |
+| `runDiscoveryCycle` | Callable / HTTP (`/api/runDiscoveryCycle`) | [`callableHandlers.ts`](../functions/src/presentation/callableHandlers.ts) / [`discoveryPersistenceUseCases.ts`](../functions/src/application/discoveryPersistenceUseCases.ts) | In: `{ localDate, currentHour, settings, projects, areas?, confirmedSubjects, curatedSources, previousFeedbacks, alreadyNotifiedDedupeKeys }`<br>Out: `{ report, job, externalSearchCalls, rejectedCandidates }` |
+
+**認証**: 上記 5 つの callable はすべて `request.auth` を必須にしている（未認証は `unauthenticated`）。
+Hosting リライト経由の `/api/*` も [`aiFlowClient.ts`](../src/infrastructure/ai/aiFlowClient.ts) が
+`Authorization: Bearer <IDトークン>` を付けて呼ぶため、`onCall` が本人の uid を解決できる。
+`runDiscoveryCycle` の `uid` はクライアント申告ではなく検証済みトークンの uid を使う。
+
+**能動発見の保存**: `runDiscoveryCycle` は結果を返すだけでなく、
+[`discoveryPersistenceUseCases.ts`](../functions/src/application/discoveryPersistenceUseCases.ts) が
+`users/{uid}/researchJobs`・`researchReports`（doc id は安定 ID なので再実行で上書き = 冪等）と、
+通知を出すと判定したときだけ `notificationOutbox` に書く。
+同意・一時停止・静音時間は Firestore 保存値を正とし、外部検索の直後・公開の直前にもう一度確認する。
+**Web Push の送信者は実装していない**。`notificationOutbox` は「送ると決めた記録」までで、
+ユーザーが実際に読む場所は連絡箱（`researchReports`）。

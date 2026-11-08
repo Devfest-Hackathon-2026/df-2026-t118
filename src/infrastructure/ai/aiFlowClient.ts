@@ -20,7 +20,7 @@ import {
   runProactiveDiscoveryCycle,
   type RunDiscoveryCycleResult,
 } from '../../../functions/src/application/proactiveDiscoveryUseCases';
-import { ensureFirebase } from '../firebase/firebaseClient';
+import { ensureFirebase, getIdToken } from '../firebase/firebaseClient';
 
 export type AiExecutionSource = 'backend-api' | 'cloud-functions' | 'local-engine';
 
@@ -36,9 +36,17 @@ async function invokeFlow<TIn, TOut>(flowName: string, input: TIn): Promise<TOut
   // 包まないと onCall が "Request body is missing data." で 400 を返し、毎回 httpsCallable への
   // フォールバックに1往復ぶん余計な時間がかかる。Vite 側のミドルウェアも data を外して読む。
   try {
+    // onCall は Authorization: Bearer <IDトークン> を見て request.auth を埋める。
+    // 付けないと本番（Hosting リライト → onCall）は常に未認証になり、
+    // uid に紐づくサーバー保存ができないうえ、関数が誰からでも叩ける状態になる。
+    // ローカルの Vite ミドルウェアは関数を経由しないため、トークンが無くても動く。
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const idToken = await getIdToken();
+    if (idToken) headers.Authorization = `Bearer ${idToken}`;
+
     const res = await fetch(`/api/${flowName}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ data: input }),
     });
     const contentType = res.headers.get('content-type') || '';

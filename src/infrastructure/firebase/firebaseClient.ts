@@ -67,3 +67,19 @@ export async function ensureAnonymousUser(): Promise<string | null> {
     });
   });
 }
+
+// Hosting リライト経由の素の fetch（/api/*）でも Cloud Functions の onCall が
+// request.auth を埋められるように、callable の規約どおり ID トークンを取り出す。
+// これが無いと本番では常に未認証扱いになり、uid に紐づく保存が一切できない。
+export async function getIdToken(): Promise<string | null> {
+  const fb = ensureFirebase();
+  if (!fb) return null;
+  const uid = await ensureAnonymousUser();
+  if (!uid) return null;
+  try {
+    const auth = getAuth(fb.app);
+    return (await auth.currentUser?.getIdToken()) || null;
+  } catch {
+    return null;
+  }
+}
