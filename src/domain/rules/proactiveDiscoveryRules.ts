@@ -58,7 +58,7 @@ export function buildDefaultCuratedSources(): CuratedSource[] {
     {
       id: 'src_artist_official',
       name: '本人確認済みアーティスト・作家の公式サイト（一次情報）',
-      url: 'https://ichikoaoba.com/',
+      url: 'https://example.com/aoi-kotone/',
       curatorType: 'artist_official',
       selectedBy: 'user',
       termsVerified: true,
@@ -68,8 +68,8 @@ export function buildDefaultCuratedSources(): CuratedSource[] {
     },
     {
       id: 'src_editor_magazine',
-      name: 'POPEYE Web / Casa BRUTUS 等の編集者キュレーション連載',
-      url: 'https://popeyemagazine.jp/',
+      name: '編集部キュレーション連載（架空の雑誌『まち本』）',
+      url: 'https://example.com/machibon/',
       curatorType: 'editor_magazine',
       selectedBy: 'operator',
       termsVerified: true,
@@ -86,12 +86,12 @@ export function buildDefaultConfirmedSubjects(
   const firstProjId = projects.find((p) => p.status === 'active')?.id || null;
   return [
     {
-      id: 'subj_ichiko_aoba',
-      canonicalName: '青葉市子',
+      id: 'subj_demo_aoi_kotone',
+      canonicalName: '蒼井ことね',
       category: 'artist',
-      disambiguationHint: 'クラシックギター・シンガーソングライター（Windswept Adan）',
-      officialUrl: 'https://ichikoaoba.com/',
-      workExample: 'アダンの風 / Luminescent Creatures',
+      disambiguationHint: 'クラシックギター・シンガーソングライター（潮の記譜）',
+      officialUrl: 'https://example.com/aoi-kotone/',
+      workExample: '潮の記譜 / Lantern Field',
       frequency: 'often',
       confirmationState: 'confirmed',
       source: 'manual_input',

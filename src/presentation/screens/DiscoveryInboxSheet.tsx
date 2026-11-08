@@ -7,15 +7,11 @@ import type {
 } from '../../domain/models/islandModels';
 import type {
   ConfirmedSubject,
-  CuratedSource,
   DiscoveryFeedback,
   DiscoverySettings,
   ResearchReport,
 } from '../../domain/models/proactiveDiscoveryModels';
-import {
-  checkHomonymNeedsDisambiguation,
-  previewMinimalSearchQuery,
-} from '../../domain/rules/proactiveDiscoveryRules';
+import { checkHomonymNeedsDisambiguation } from '../../domain/rules/proactiveDiscoveryRules';
 import { Avatar, Icon } from '../common/UiParts';
 
 export const DiscoveryInboxSheet: React.FC<{
@@ -24,7 +20,6 @@ export const DiscoveryInboxSheet: React.FC<{
   areas?: AreaEntity[];
   settings: DiscoverySettings;
   confirmedSubjects: ConfirmedSubject[];
-  curatedSources: CuratedSource[];
   reports: ResearchReport[];
   busy: boolean;
   onUpdateSettings: (patch: Partial<DiscoverySettings>) => void;
@@ -57,7 +52,6 @@ export const DiscoveryInboxSheet: React.FC<{
   areas = [],
   settings,
   confirmedSubjects,
-  curatedSources,
   reports,
   busy,
   onUpdateSettings,
@@ -74,41 +68,16 @@ export const DiscoveryInboxSheet: React.FC<{
   const [dislikeReasonInput, setDislikeReasonInput] = useState('');
   const [showDislikeBoxFor, setShowDislikeBoxFor] = useState<string | null>(null);
   const [showScreenshotCandidateBox, setShowScreenshotCandidateBox] = useState(false);
-  const [screenshotMockText, setScreenshotMockText] = useState('カネコアヤノ 単独演奏会');
+  const [screenshotMockText, setScreenshotMockText] = useState('綾野かなえ 単独演奏会');
 
   const activeProjects = projects.filter((p) => p.status === 'active');
   const activeAreas = areas.filter((a) => a.status === 'active');
   const enabledAreaIds = settings.enabledAreaIds || [];
-  const budgetLimitUsd = settings.budgetLimitUsd ?? 3.0;
-  const estimatedUsedUsd = settings.estimatedUsedUsd ?? 0.04;
-
-  const queryPreview = previewMinimalSearchQuery({
-    settings,
-    projects,
-    areas,
-    confirmedSubjects,
-  });
 
   const latestReport = reports[0] || null;
   const visibleSubjects = confirmedSubjects.filter(
     (s) => s.confirmationState !== 'deleted'
   );
-
-  const handleToggleProject = (projectId: string) => {
-    const exists = settings.enabledProjectIds.includes(projectId);
-    const next = exists
-      ? settings.enabledProjectIds.filter((id) => id !== projectId)
-      : [...settings.enabledProjectIds, projectId];
-    onUpdateSettings({ enabledProjectIds: next });
-  };
-
-  const handleToggleArea = (areaId: string) => {
-    const exists = enabledAreaIds.includes(areaId);
-    const next = exists
-      ? enabledAreaIds.filter((id) => id !== areaId)
-      : [...enabledAreaIds, areaId];
-    onUpdateSettings({ enabledAreaIds: next });
-  };
 
   const handleManualAddArtist = () => {
     const trimmed = artistNameInput.trim();
@@ -141,7 +110,7 @@ export const DiscoveryInboxSheet: React.FC<{
 
   const handleCreateScreenshotCandidate = () => {
     if (!settings.aiConsentGranted) return;
-    const extracted = screenshotMockText.trim().split(/\s+/)[0] || 'カネコアヤノ';
+    const extracted = screenshotMockText.trim().split(/\s+/)[0] || '綾野かなえ';
     const defaultTargetId =
       activeProjects.find((p) => settings.enabledProjectIds.includes(p.id))?.id ||
       activeAreas.find((a) => enabledAreaIds.includes(a.id))?.id ||
@@ -177,10 +146,10 @@ export const DiscoveryInboxSheet: React.FC<{
       </div>
 
       {/* 1. 最新のお便り（イベントカード 1件 ＋ ちょっとした質問 1件） */}
-      <div className="card" style={{ gap: '10px', border: '1.5px solid rgba(31, 41, 55, 0.14)' }}>
+      <div className="card card--feature" style={{ border: '1.5px solid rgba(51, 48, 73, 0.12)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Avatar kind={character} size={34} />
+            <Avatar kind={character} size={44} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <span className="eyebrow eyebrow--accent">
                 TODAY&apos;S LETTER · {NAMES[character]}からのお便り
@@ -433,68 +402,14 @@ export const DiscoveryInboxSheet: React.FC<{
           </div>
         ) : null}
 
-        {/* どうやって見つけたか（裏側のチェック記録） */}
-        {latestReport ? (
-          <details style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
-            <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
-              どうやって探したか・情報元のリンクを見る
-            </summary>
-            <div
-              style={{
-                marginTop: '6px',
-                padding: '10px',
-                borderRadius: '12px',
-                background: 'rgba(255,255,255,0.65)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px',
-              }}
-            >
-              <div>
-                <strong>探した日時:</strong>{' '}
-                {new Date(latestReport.investigationMemo.executedAt).toLocaleString('ja-JP')}
-              </div>
-              <div>
-                <strong>外への検索:</strong>{' '}
-                {latestReport.investigationMemo.searchPerformed ? '探しました' : '探していません（0回）'}
-              </div>
-              <div>
-                <strong>使った検索ワード:</strong>{' '}
-                <code>{latestReport.investigationMemo.queryUsed || '（送っていません）'}</code>
-              </div>
-              <div>
-                <strong>関連するテーマ (Project / Area):</strong>{' '}
-                {latestReport.investigationMemo.targetProjectName || 'なし'}
-              </div>
-              <div>
-                <strong>しまのメモ:</strong> {latestReport.investigationMemo.summary}
-              </div>
-              <div>
-                <strong>ご案内:</strong>{' '}
-                {latestReport.investigationMemo.uncertaintyNote}
-              </div>
-              {latestReport.investigationMemo.sourcesReceived.length > 0 ? (
-                <div style={{ marginTop: '4px' }}>
-                  <strong>チェックした情報元:</strong>
-                  <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
-                    {latestReport.investigationMemo.sourcesReceived.map((s, idx) => (
-                      <li key={`${s.url}_${idx}`}>
-                        [{s.isOfficial ? '公式ページ確認済み' : '未確認のため見送り'}] {s.title} ({s.url})
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-            </div>
-          </details>
-        ) : null}
       </div>
 
-      {/* 2. あなたの「好き」帳（好きなアーティスト・作家） */}
-      <div className="card" style={{ gap: '10px' }}>
-        <span className="eyebrow eyebrow--muted">
-          FAVORITE PEOPLE · あなたの「好き」帳（アーティスト・作家）
+      {/* 2. あなたの「好き」帳（好きなアーティスト・作家）。お便りと並ぶ主役 */}
+      <div className="card card--feature">
+        <span className="eyebrow eyebrow--accent">
+          FAVORITE PEOPLE · あなたの「好き」帳
         </span>
+        <p className="card__headline">好きなアーティスト・作家</p>
         <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
           あなたが「好き・聴く」と教えてくれた人だけを手がかりにお便りを探します。消した名前が勝手に復活することはありません。
         </span>
@@ -515,6 +430,13 @@ export const DiscoveryInboxSheet: React.FC<{
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                 <strong style={{ fontSize: '14px' }}>{subj.canonicalName}</strong>
+                {/* 初期状態で入れてあるサンプルは、本人が教えたものと区別がつくようにする。
+                    「あなたが教えてくれた人」という説明と食い違わせない */}
+                {subj.id.startsWith('subj_demo_') ? (
+                  <span className="chip chip--soft" style={{ fontSize: '10.5px' }}>
+                    デモ用のサンプル（架空）
+                  </span>
+                ) : null}
                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                   <span
                     className={`chip ${
@@ -637,12 +559,12 @@ export const DiscoveryInboxSheet: React.FC<{
         {/* 手入力で好きな人を追加 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
           <span style={{ fontSize: '12px', fontWeight: 600 }}>
-            ＋ 好きなアーティストや作家を教える（例：青葉市子、カネコアヤノ、くるり、佐藤卓）
+            ＋ 好きなアーティストや作家を教える（例：蒼井ことね、綾野かなえ、ハルカゼ楽団、榊原たく）
           </span>
           <div className="inputpill">
             <input
               type="text"
-              placeholder="アーティスト・作家名（例：カネコアヤノ）"
+              placeholder="アーティスト・作家名（例：綾野かなえ）"
               value={artistNameInput}
               onChange={(e) => setArtistNameInput(e.target.value)}
             />
@@ -695,7 +617,7 @@ export const DiscoveryInboxSheet: React.FC<{
                     type="text"
                     value={screenshotMockText}
                     onChange={(e) => setScreenshotMockText(e.target.value)}
-                    placeholder="スクショ内の文字（例：カネコアヤノ 単独演奏会）"
+                    placeholder="スクショ内の文字（例：綾野かなえ 単独演奏会）"
                   />
                   <button
                     className="btn btn--ink btn--pill btn--sm"
@@ -710,219 +632,80 @@ export const DiscoveryInboxSheet: React.FC<{
         </div>
       </div>
 
-      {/* 3. あんしん設定（ProjectとArea両対応・月3ドル上限・わかりやすい3つのスイッチ） */}
-      <div className="card demo__opts" style={{ gap: '10px' }}>
-        <span className="eyebrow eyebrow--muted">
-          PEACE OF MIND SETTINGS · お便りのあんしん設定（Project・Area ＆ 予算上限）
+
+      {/* 3. 調べ方の記録。お便りの裏側なので、読みたい人だけが開く別セクションに下げている */}
+      <div className="card card--quiet" style={{ gap: '8px' }}>
+        <span className="eyebrow eyebrow--muted">SEARCH LOG · 調べ方の記録</span>
+        <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
+          お便りをどう探したか、どの情報元を見たかの記録です。ふだんは開かなくて大丈夫。
         </span>
-
-        <label>
-          <span>① AIサポートを使う（保存時の意図まとめ・スクショの文字読み取り）</span>
-          <input
-            type="checkbox"
-            checked={settings.aiConsentGranted}
-            onChange={(e) =>
-              onUpdateSettings({
-                aiConsentGranted: e.target.checked,
-                aiConsentAt: e.target.checked ? Date.now() : null,
-              })
-            }
-          />
-        </label>
-
-        <label>
-          <span>② 好きな人の公演や記事を外で探してくる（最初はオフ）</span>
-          <input
-            type="checkbox"
-            checked={settings.searchConsentGranted}
-            onChange={(e) =>
-              onUpdateSettings({
-                searchConsentGranted: e.target.checked,
-                searchConsentAt: e.target.checked ? Date.now() : null,
-              })
-            }
-          />
-        </label>
-
-        <label>
-          <span>③ お便りが届いたらスマホに通知する（最初はオフ・中身は伏せて通知）</span>
-          <input
-            type="checkbox"
-            checked={settings.notificationEnabled}
-            onChange={(e) =>
-              onUpdateSettings({
-                notificationEnabled: e.target.checked,
-                notificationConsentAt: e.target.checked ? Date.now() : null,
-              })
-            }
-          />
-        </label>
-
-        <label>
-          <span>お便り探しをしばらくお休みする</span>
-          <input
-            type="checkbox"
-            checked={settings.paused}
-            onChange={(e) => onUpdateSettings({ paused: e.target.checked })}
-          />
-        </label>
-
-        {/* Project と Area の両方をワンタップで対象に選べる */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ fontSize: '12.5px', fontWeight: 600 }}>
-            お便りを探してほしいテーマ（Project と Area の両方から選べます）
-          </span>
-          {activeProjects.length > 0 || activeAreas.length > 0 ? (
-            <div className="row-chips">
-              {activeProjects.map((proj) => {
-                const enabled = settings.enabledProjectIds.includes(proj.id);
-                return (
-                  <button
-                    key={proj.id}
-                    type="button"
-                    className={`chip ${enabled ? 'chip--ink' : 'chip--soft'}`}
-                    onClick={() => handleToggleProject(proj.id)}
-                  >
-                    {enabled ? '✓ 探す (Project): ' : 'お休み (Project): '}
-                    {proj.name}
-                  </button>
-                );
-              })}
-              {activeAreas.map((area) => {
-                const enabled = enabledAreaIds.includes(area.id);
-                return (
-                  <button
-                    key={area.id}
-                    type="button"
-                    className={`chip ${enabled ? 'chip--ink' : 'chip--soft'}`}
-                    onClick={() => handleToggleArea(area.id)}
-                  >
-                    {enabled ? '✓ 探す (Area): ' : 'お休み (Area): '}
-                    {area.name}
-                  </button>
-                );
-              })}
+      {/* お便りがまだ無いときも開けるようにする。
+          latestReport で details ごと出し分けると、見出しだけが残って何も開けない状態になる。 */}
+      <details style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
+          どうやって探したか・情報元のリンクを見る
+        </summary>
+        {!latestReport ? (
+          <div
+            style={{
+              marginTop: '6px',
+              padding: '10px',
+              borderRadius: '12px',
+              background: 'rgba(255,255,255,0.65)',
+            }}
+          >
+            まだ記録はありません。お便りが届くと、どう探したか・どの情報元を見たかがここに残ります。
+          </div>
+        ) : (
+          <div
+            style={{
+              marginTop: '6px',
+              padding: '10px',
+              borderRadius: '12px',
+              background: 'rgba(255,255,255,0.65)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+            }}
+          >
+            <div>
+              <strong>探した日時:</strong>{' '}
+              {new Date(latestReport.investigationMemo.executedAt).toLocaleString('ja-JP')}
             </div>
-          ) : (
-            <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-              まだ Project や Area が登録されていません。
-            </span>
-          )}
-        </div>
-
-        {/* 月の検索予算上限（デフォルト $3.00 / 約450円） */}
-        <div
-          style={{
-            padding: '10px 12px',
-            borderRadius: '14px',
-            background: 'rgba(255, 255, 255, 0.75)',
-            border: '1px solid rgba(0, 0, 0, 0.08)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
-            <span style={{ fontSize: '12.5px', fontWeight: 600 }}>
-              月の検索コスト上限（超えたら自動でストップ）
-            </span>
-            <span className="chip chip--ink" style={{ fontSize: '11px' }}>
-              上限 ${budgetLimitUsd.toFixed(2)} / 月（現在 約${estimatedUsedUsd.toFixed(2)}）
-            </span>
-          </div>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {[1.0, 3.0, 5.0].map((val) => (
-              <button
-                key={val}
-                type="button"
-                className={`btn btn--pill btn--sm ${
-                  Math.abs(budgetLimitUsd - val) < 0.01 ? 'btn--ink' : 'btn--ghost'
-                }`}
-                onClick={() => onUpdateSettings({ budgetLimitUsd: val })}
-              >
-                ${val.toFixed(0)}（約{Math.round(val * 150)}円）{val === 3.0 ? '・おすすめ' : ''}
-              </button>
-            ))}
-          </div>
-          <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
-            ※1日1回だけ最小限の検索をするため、通常は月 $0.50〜$3.00 以内に収まります。上限に達すると自動で外への検索を止めるので安心です。
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: '140px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-              行きやすい地域（任意・現在地の自動取得はしません）
-            </span>
-            <input
-              type="text"
-              value={settings.regionPreference}
-              placeholder="例：東京・関東 / 京都・関西"
-              onChange={(e) => onUpdateSettings({ regionPreference: e.target.value })}
-              style={{
-                width: '100%',
-                padding: '7px 10px',
-                borderRadius: '10px',
-                border: '1px solid rgba(0,0,0,0.12)',
-                fontSize: '12.5px',
-                marginTop: '4px',
-              }}
-            />
-          </div>
-          <div style={{ flex: 1, minWidth: '140px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--muted)' }}>気になる時期（任意）</span>
-            <input
-              type="text"
-              value={settings.periodPreference}
-              placeholder="例：2026年11月〜12月"
-              onChange={(e) => onUpdateSettings({ periodPreference: e.target.value })}
-              style={{
-                width: '100%',
-                padding: '7px 10px',
-                borderRadius: '10px',
-                border: '1px solid rgba(0,0,0,0.12)',
-                fontSize: '12.5px',
-                marginTop: '4px',
-              }}
-            />
-          </div>
-        </div>
-
-        {/* 検索ワードの事前確認 */}
-        <div
-          style={{
-            padding: '10px 12px',
-            borderRadius: '14px',
-            background: 'rgba(243, 244, 246, 0.85)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
-            <span style={{ fontSize: '11.5px', fontWeight: 700 }}>
-              外で探すときに使う検索ワード（これだけを送ります）
-            </span>
-            <span className="eyebrow eyebrow--accent">{queryPreview.statusNote}</span>
-          </div>
-          <code style={{ fontSize: '12.5px', color: 'var(--ink)', wordBreak: 'break-all' }}>
-            {queryPreview.previewQuery}
-          </code>
-          <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
-            ※あなたが保存した写真や個人のメモ、住所などは一切含まれません。
-          </span>
-        </div>
-
-        {/* 参考にしている情報元 */}
-        <div style={{ fontSize: '11.5px', color: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-          <strong>しまがチェックする安心な情報元:</strong>
-          {curatedSources.map((src) => (
-            <div key={src.id}>
-              ・{src.name}（
-              {src.curatorType === 'artist_official' ? '公式サイトを最優先' : '編集部の連載記事'}）
+            <div>
+              <strong>外への検索:</strong>{' '}
+              {latestReport.investigationMemo.searchPerformed ? '探しました' : '探していません（0回）'}
             </div>
-          ))}
-        </div>
+            <div>
+              <strong>使った検索ワード:</strong>{' '}
+              <code>{latestReport.investigationMemo.queryUsed || '（送っていません）'}</code>
+            </div>
+            <div>
+              <strong>関連するテーマ (Project / Area):</strong>{' '}
+              {latestReport.investigationMemo.targetProjectName || 'なし'}
+            </div>
+            <div>
+              <strong>しまのメモ:</strong> {latestReport.investigationMemo.summary}
+            </div>
+            <div>
+              <strong>ご案内:</strong>{' '}
+              {latestReport.investigationMemo.uncertaintyNote}
+            </div>
+            {latestReport.investigationMemo.sourcesReceived.length > 0 ? (
+              <div style={{ marginTop: '4px' }}>
+                <strong>チェックした情報元:</strong>
+                <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                  {latestReport.investigationMemo.sourcesReceived.map((s, idx) => (
+                    <li key={`${s.url}_${idx}`}>
+                      [{s.isOfficial ? '公式ページ確認済み' : '未確認のため見送り'}] {s.title} ({s.url})
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        )}
+      </details>
       </div>
     </div>
   );

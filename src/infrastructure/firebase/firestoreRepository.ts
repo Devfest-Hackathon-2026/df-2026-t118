@@ -15,6 +15,11 @@ import type {
   Proposal,
   SavedItem,
 } from '../../domain/models/islandModels';
+import type {
+  ConfirmedSubject,
+  DiscoveryFeedback,
+  ResearchReport,
+} from '../../domain/models/proactiveDiscoveryModels';
 import { ensureAnonymousUser, ensureFirebase, getCachedUid } from './firebaseClient';
 
 export function readInitialLocalState(): Partial<PersistedState> {
@@ -53,6 +58,9 @@ export async function loadFromFirestore(): Promise<{
   proposals: Proposal[];
   projects: ProjectEntity[];
   areas: AreaEntity[];
+  confirmedSubjects: ConfirmedSubject[];
+  researchReports: ResearchReport[];
+  discoveryFeedbacks: DiscoveryFeedback[];
 } | null> {
   const fb = ensureFirebase();
   const uid = await ensureAnonymousUser();
@@ -67,6 +75,9 @@ export async function loadFromFirestore(): Promise<{
       proposalsSnap,
       projectsSnap,
       areasSnap,
+      subjectsSnap,
+      reportsSnap,
+      feedbacksSnap,
     ] = await Promise.all([
       getDoc(userRef),
       getDocs(collection(userRef, 'items')),
@@ -74,6 +85,12 @@ export async function loadFromFirestore(): Promise<{
       getDocs(collection(userRef, 'proposals')),
       getDocs(collection(userRef, 'projects')),
       getDocs(collection(userRef, 'areas')),
+      // 連絡箱の「好き」帳とフィードバック。端末内にしか無いと別端末・ストレージ削除で消える。
+      // researchReports は firestore.rules でクライアントからの write を禁じている
+      // （サーバー管理のため）ので読むだけにする。発見カードは再生成できる。
+      getDocs(collection(userRef, 'confirmedSubjects')),
+      getDocs(collection(userRef, 'researchReports')),
+      getDocs(collection(userRef, 'discoveryFeedbacks')),
     ]);
 
     const items = itemsSnap.docs
@@ -91,6 +108,15 @@ export async function loadFromFirestore(): Promise<{
     const areas = areasSnap.docs
       .map((d) => d.data() as AreaEntity)
       .sort((a, b) => b.updatedAt - a.updatedAt);
+    const confirmedSubjects = subjectsSnap.docs
+      .map((d) => d.data() as ConfirmedSubject)
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+    const researchReports = reportsSnap.docs
+      .map((d) => d.data() as ResearchReport)
+      .sort((a, b) => b.executedAt - a.executedAt);
+    const discoveryFeedbacks = feedbacksSnap.docs
+      .map((d) => d.data() as DiscoveryFeedback)
+      .sort((a, b) => b.createdAt - a.createdAt);
 
     if (
       !userSnap.exists() &&
@@ -109,6 +135,9 @@ export async function loadFromFirestore(): Promise<{
       proposals,
       projects,
       areas,
+      confirmedSubjects,
+      researchReports,
+      discoveryFeedbacks,
     };
   } catch {
     return null;
@@ -123,6 +152,8 @@ export async function syncToFirestore(payload: {
   proposals: Proposal[];
   projects?: ProjectEntity[];
   areas?: AreaEntity[];
+  confirmedSubjects?: ConfirmedSubject[];
+  discoveryFeedbacks?: DiscoveryFeedback[];
 }): Promise<boolean> {
   const fb = ensureFirebase();
   const uid = getCachedUid() || (await ensureAnonymousUser());
@@ -148,6 +179,12 @@ export async function syncToFirestore(payload: {
       ),
       ...(payload.areas || []).map((ar) =>
         setDoc(doc(userRef, 'areas', ar.id), ar, { merge: true })
+      ),
+      ...(payload.confirmedSubjects || []).map((sub) =>
+        setDoc(doc(userRef, 'confirmedSubjects', sub.id), sub, { merge: true })
+      ),
+      ...(payload.discoveryFeedbacks || []).map((fb2) =>
+        setDoc(doc(userRef, 'discoveryFeedbacks', fb2.id), fb2, { merge: true })
       ),
     ]);
     return true;

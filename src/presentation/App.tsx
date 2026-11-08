@@ -131,6 +131,11 @@ export const App: React.FC = () => {
       (r.question && r.question.status === 'pending')
   ).length;
 
+  // 未回答のしつもんカード。ドックから「こたえる」で拾えるようにするために数える
+  const pendingQuestionCount = researchReports.filter(
+    (r) => r.question && r.question.status === 'pending'
+  ).length;
+
   const floatingItems = items.filter((i) => i.floating && i.para !== 'Archives');
   const pendingBundles = bundles.filter(
     (b) => b.approvalStatus === 'pending' && b.para !== 'Archives'
@@ -231,6 +236,7 @@ export const App: React.FC = () => {
             pendingBundlesCount={pendingBundles.length}
             somedayCount={somedayItems.length}
             inboxCount={inboxCount}
+            pendingQuestionCount={pendingQuestionCount}
             hint={hint}
             aiBusyLabel={aiBusyLabel}
             onOpenSearch={() => openSheet('search')}
@@ -446,7 +452,6 @@ export const App: React.FC = () => {
                 areas={areas}
                 settings={discoverySettings}
                 confirmedSubjects={confirmedSubjects}
-                curatedSources={curatedSources}
                 reports={researchReports}
                 busy={Boolean(aiBusyLabel)}
                 onUpdateSettings={handleUpdateDiscoverySettings}
@@ -495,6 +500,10 @@ export const App: React.FC = () => {
                 onAddProject={handleAddProject}
                 onAddArea={handleAddArea}
                 onLoadUseCasePreset={handleLoadUseCasePreset}
+                discoverySettings={discoverySettings}
+                confirmedSubjects={confirmedSubjects}
+                curatedSources={curatedSources}
+                onUpdateDiscoverySettings={handleUpdateDiscoverySettings}
                 onOpenDiscoveryInbox={() => setSheet('inbox')}
                 onReopenOnboarding={() => {
                   closeSheet(() => {

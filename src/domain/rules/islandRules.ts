@@ -136,6 +136,7 @@ export function computeBubbleText(params: {
   proposalStatus: ProposalStatus;
   activeBundle?: Bundle | null;
   pendingBundlesCount?: number;
+  pendingQuestionCount?: number;
   phase: PhaseKind;
   aiBusyLabel?: string | null;
 }): string {
@@ -154,6 +155,10 @@ export function computeBubbleText(params: {
   if (params.proposalStatus === 'mada') return 'だいじょうぶ。次はもう少し小さくしてみるね。';
   if ((params.pendingBundlesCount || 0) > 0) {
     return `夜に${params.pendingBundlesCount}つの束ね案を作ったよ。タップして確認してね。`;
+  }
+  // しつもんカードは連絡箱の中だけだと気づかれにくいので、ドックからも拾えるようにする
+  if ((params.pendingQuestionCount || 0) > 0) {
+    return 'ちょっとだけ聞きたいことがあるんだ。こたえてくれる？';
   }
   if (params.phase === 'night') return 'おやすみ。集めたものを、ProjectやAreaに合わせて束ねておくね。';
   if (hasUnknown && !confirmedFloating) return '「？」のカード、決まったら教えてね。';
@@ -303,4 +308,36 @@ export function buildFallbackBundle(items: SavedItem[]): Bundle {
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
+}
+
+// 保存物がその束に属しているかを判定する。
+//
+// このアプリは束の所属を 3 通りで表している:
+//   - bundle.itemIds（束の側が持つ保存物 ID の配列）
+//   - item.bundleId（保存物の側が持つ束 ID）
+//   - item.placementId（Project / Area への配置先。束 ID が入ることがある）
+//
+// 片方しか見ないと取り残しが出る。実際、「手放す」が item.bundleId だけを見ていたため、
+// itemIds だけで紐づいた保存物が Archives に移らず島に浮いたまま残っていた。
+// 所属の判定は必ずこの関数を通すこと。
+export function isItemInBundle(
+  item: Pick<SavedItem, 'id' | 'bundleId' | 'placementId'>,
+  bundle: Pick<Bundle, 'id' | 'itemIds'>
+): boolean {
+  if (item.bundleId === bundle.id) return true;
+  if (item.placementId === bundle.id) return true;
+  return bundle.itemIds.includes(item.id);
+}
+
+// 束を Archives に移すときに、その束に属する保存物へ当てる差分。
+// 戻す先が分かるように previousPara を残し、島からは降ろす（floating: false）。
+export function archiveItemsOfBundle(
+  items: SavedItem[],
+  bundle: Pick<Bundle, 'id' | 'itemIds'>
+): SavedItem[] {
+  return items.map((it) =>
+    isItemInBundle(it, bundle)
+      ? { ...it, previousPara: it.para, para: 'Archives' as const, floating: false }
+      : it
+  );
 }

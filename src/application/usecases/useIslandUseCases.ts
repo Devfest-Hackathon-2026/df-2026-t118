@@ -22,8 +22,10 @@ import type {
   UserSurveyProfile,
 } from '../../domain/models/islandModels';
 import {
+  archiveItemsOfBundle,
   computeLocalDateString,
   inferBuildingKindFromBundle,
+  isItemInBundle,
   selectItemsForNightOrganize,
   selectTargetBundleForToday,
 } from '../../domain/rules/islandRules';
@@ -216,6 +218,10 @@ export function useIslandUseCases() {
         setProposals(remote.proposals);
         if (remote.projects.length > 0) setProjects(remote.projects);
         if (remote.areas.length > 0) setAreas(remote.areas);
+        // 連絡箱の状態。空のクラウド側で端末内のデータを潰さないよう、件数があるときだけ上書きする。
+        if (remote.confirmedSubjects.length > 0) setConfirmedSubjects(remote.confirmedSubjects);
+        if (remote.researchReports.length > 0) setResearchReports(remote.researchReports);
+        if (remote.discoveryFeedbacks.length > 0) setDiscoveryFeedbacks(remote.discoveryFeedbacks);
         if (remote.meta) {
           if (typeof remote.meta.screen === 'string') {
             setScreen(remote.meta.screen as 's1' | 'home');
@@ -308,6 +314,10 @@ export function useIslandUseCases() {
         proposals,
         projects,
         areas,
+        // 連絡箱の「好き」帳とフィードバックは本人が育てたデータなので必ずクラウドに残す。
+        // researchReports はサーバー管理（rules で client write 禁止）のためここでは送らない。
+        confirmedSubjects,
+        discoveryFeedbacks,
       }).then((ok) => {
         if (!ok) {
           flash('クラウド同期に一時失敗しました（端末内には保存されています）');
@@ -1126,6 +1136,15 @@ export function useIslandUseCases() {
           updatedAt: Date.now(),
         };
         setBundles((prev) => [created, ...prev]);
+        // 束の itemIds だけでなく保存物側の bundleId / para / floating も合わせる。
+        // ここが片側だけだと、あとで「手放す」をしたときに保存物が島に取り残される。
+        setItems((prev) =>
+          prev.map((it) =>
+            it.id === single.id
+              ? { ...it, bundleId: created.id, para: created.para, floating: false }
+              : it
+          )
+        );
         targetBundle = created;
       } else {
         closeAllOverlays();
@@ -1268,6 +1287,7 @@ export function useIslandUseCases() {
         );
       }
       if (activeBundleId) {
+        const releasedBundle = bundles.find((b) => b.id === activeBundleId);
         setBundles((prev) =>
           prev.map((b) =>
             b.id === activeBundleId
@@ -1275,13 +1295,11 @@ export function useIslandUseCases() {
               : b
           )
         );
-        setItems((prev) =>
-          prev.map((it) =>
-            it.bundleId === activeBundleId
-              ? { ...it, previousPara: it.para, para: 'Archives', floating: false }
-              : it
-          )
-        );
+        // 所属の判定は isItemInBundle に一本化する。bundleId だけで見ると、
+        // itemIds / placementId でしか紐づいていない保存物が島に浮いたまま取り残される。
+        if (releasedBundle) {
+          setItems((prev) => archiveItemsOfBundle(prev, releasedBundle));
+        }
       }
       setNonce((n) => n + 1);
     });
@@ -1509,19 +1527,16 @@ export function useIslandUseCases() {
   };
 
   const handleReleaseBundle = (bundleId: string) => {
+    const releasedBundle = bundles.find((b) => b.id === bundleId);
     closeSheet(() => {
       setBundles((prev) =>
         prev.map((b) =>
           b.id === bundleId ? { ...b, para: 'Archives', readyForProposal: false } : b
         )
       );
-      setItems((prev) =>
-        prev.map((it) =>
-          it.bundleId === bundleId
-            ? { ...it, previousPara: it.para, para: 'Archives', floating: false }
-            : it
-        )
-      );
+      if (releasedBundle) {
+        setItems((prev) => archiveItemsOfBundle(prev, releasedBundle));
+      }
       if (activeBundleId === bundleId) {
         setProposalStatus('released');
       }
@@ -1531,6 +1546,7 @@ export function useIslandUseCases() {
   };
 
   const handleCompleteBundleToArchive = (bundleId: string) => {
+    const completedBundle = bundles.find((b) => b.id === bundleId);
     closeSheet(() => {
       setBundles((prev) =>
         prev.map((b) =>
@@ -1544,8 +1560,8 @@ export function useIslandUseCases() {
       );
       setItems((prev) =>
         prev.map((it) =>
-          it.bundleId === bundleId || it.placementId === bundleId
-            ? { ...it, previousPara: it.para, para: 'Archives', floating: false }
+          isItemInBundle(it, completedBundle ?? { id: bundleId, itemIds: [] })
+            ? { ...it, previousPara: it.para, para: 'Archives' as const, floating: false }
             : it
         )
       );

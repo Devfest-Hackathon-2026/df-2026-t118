@@ -22,6 +22,7 @@ export const S2Home: React.FC<{
   pendingBundlesCount?: number;
   somedayCount: number;
   inboxCount?: number;
+  pendingQuestionCount?: number;
   hint: boolean;
   aiBusyLabel: string | null;
   onOpenSearch: () => void;
@@ -44,6 +45,7 @@ export const S2Home: React.FC<{
   pendingBundlesCount = 0,
   somedayCount,
   inboxCount = 0,
+  pendingQuestionCount = 0,
   hint,
   aiBusyLabel,
   onOpenSearch,
@@ -73,6 +75,10 @@ export const S2Home: React.FC<{
       label: `束ね案を確認 (${pendingBundlesCount})`,
       onClick: onOpenPendingBundle,
     };
+  } else if (pendingQuestionCount > 0 && onOpenInbox) {
+    // しつもんカードは連絡箱の中にあるが、そこまで辿り着かないと気づけない。
+    // 「今日の一歩」と同じようにドックから1タップで答えに行けるようにする。
+    primaryCta = { label: 'こたえる', onClick: onOpenInbox };
   }
 
   const tag =
@@ -80,9 +86,11 @@ export const S2Home: React.FC<{
       ? 'ONE STEP'
       : pendingBundlesCount > 0
         ? 'CLUSTER PROPOSAL'
-        : aiBusyLabel
-          ? 'GEMINI AI'
-          : null;
+        : pendingQuestionCount > 0
+          ? 'QUESTION'
+          : aiBusyLabel
+            ? 'GEMINI AI'
+            : null;
 
   return (
     <>
@@ -176,6 +184,7 @@ export const S2Home: React.FC<{
             proposalStatus,
             activeBundle,
             pendingBundlesCount,
+            pendingQuestionCount,
             phase,
             aiBusyLabel,
           })}

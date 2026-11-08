@@ -13,8 +13,14 @@ import type {
   ProposalStyleKind,
   UserSurveyProfile,
 } from '../../domain/models/islandModels';
+import type {
+  ConfirmedSubject,
+  CuratedSource,
+  DiscoverySettings,
+} from '../../domain/models/proactiveDiscoveryModels';
 import { BUILDING_LIBRARY_CATALOG } from '../../domain/rules/islandRules';
 import { Icon } from '../common/UiParts';
+import { IslandSettingsSection } from './IslandSettingsSection';
 
 export const SettingsSheet: React.FC<{
   character: CharacterKind;
@@ -37,6 +43,10 @@ export const SettingsSheet: React.FC<{
   onAddProject?: (name: string, goal: string) => void;
   onAddArea?: (name: string) => void;
   onLoadUseCasePreset?: (presetId: UseCasePersonaPreset['id']) => void;
+  discoverySettings?: DiscoverySettings;
+  confirmedSubjects?: ConfirmedSubject[];
+  curatedSources?: CuratedSource[];
+  onUpdateDiscoverySettings?: (patch: Partial<DiscoverySettings>) => void;
   onOpenDiscoveryInbox?: () => void;
   onReopenOnboarding?: () => void;
   onResetAll: () => void;
@@ -61,6 +71,10 @@ export const SettingsSheet: React.FC<{
   onAddProject,
   onAddArea,
   onLoadUseCasePreset,
+  discoverySettings,
+  confirmedSubjects,
+  curatedSources,
+  onUpdateDiscoverySettings,
   onOpenDiscoveryInbox,
   onReopenOnboarding,
   onResetAll,
@@ -313,6 +327,19 @@ export const SettingsSheet: React.FC<{
             </div>
           ) : null}
         </div>
+      ) : null}
+
+      {/* お便りのあんしん設定。もともと しまの連絡箱 の中にあったが、
+          連絡箱は読む場所に絞りたいのでここへ移した */}
+      {discoverySettings && onUpdateDiscoverySettings ? (
+        <IslandSettingsSection
+          settings={discoverySettings}
+          projects={projects}
+          areas={areas}
+          confirmedSubjects={confirmedSubjects || []}
+          curatedSources={curatedSources || []}
+          onUpdateSettings={onUpdateDiscoverySettings}
+        />
       ) : null}
 
       {/* 複数ユースケース・ペルソナプリセット切替（DB・PARA検証用） */}
