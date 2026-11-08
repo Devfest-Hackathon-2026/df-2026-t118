@@ -1,38 +1,82 @@
 {
   "hosting": {
     "public": "dist",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/README.md"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "**/README.md"
+    ],
     "rewrites": [
       {
         "source": "/api/analyzeItem",
-        "function": { "functionId": "analyzeItem", "region": "asia-northeast1" }
+        "function": {
+          "functionId": "analyzeItem",
+          "region": "asia-northeast1"
+        }
       },
       {
         "source": "/api/confirmItemIntent",
-        "function": { "functionId": "confirmItemIntent", "region": "asia-northeast1" }
+        "function": {
+          "functionId": "confirmItemIntent",
+          "region": "asia-northeast1"
+        }
       },
       {
         "source": "/api/nightOrganize",
-        "function": { "functionId": "nightOrganize", "region": "asia-northeast1" }
+        "function": {
+          "functionId": "nightOrganize",
+          "region": "asia-northeast1"
+        }
       },
       {
         "source": "/api/morningPropose",
-        "function": { "functionId": "morningPropose", "region": "asia-northeast1" }
+        "function": {
+          "functionId": "morningPropose",
+          "region": "asia-northeast1"
+        }
       },
-      { "source": "**", "destination": "/index.html" }
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
     ],
     "headers": [
       {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "/assets/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      },
+      {
         "source": "**/*.woff2",
-        "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
       },
       {
         "source": "/sw.js",
-        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
-      },
-      {
-        "source": "/index.html",
-        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
       }
     ]
   },
@@ -40,7 +84,12 @@
     {
       "source": "functions",
       "codebase": "default",
-      "ignore": ["node_modules", ".git", "firebase-debug.log", "firebase-debug.*.log"]
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ]
     }
   ],
   "firestore": {
