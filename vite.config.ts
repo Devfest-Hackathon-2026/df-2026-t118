@@ -68,7 +68,12 @@ export function createIslandApiHandler(apiKey?: string) {
       return next();
     }
     try {
-      const body = await readJsonBody(req);
+      const raw = await readJsonBody(req);
+      // クライアントは onCall 互換で { data: ... } を送る。ここでは中身だけを取り出す。
+      const body =
+        raw && typeof raw === 'object' && 'data' in raw
+          ? (raw as { data: unknown }).data
+          : raw;
       if (req.url === '/api/analyzeItem') {
         const input = AnalyzeItemInputSchema.parse(body);
         const out = await runAnalyzeItem(input, apiKey);

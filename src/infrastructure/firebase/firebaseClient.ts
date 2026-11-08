@@ -1,6 +1,6 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, type User } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { initializeFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { getFunctions, type Functions } from 'firebase/functions';
 
@@ -25,7 +25,10 @@ export function ensureFirebase() {
   if (!isFirebaseConfigured) return null;
   if (!app) {
     app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-    db = getFirestore(app);
+    // 画面の状態には未設定のフィールド（activeProposalId など）が undefined のまま混ざる。
+    // 既定の Firestore は undefined を含む書き込みを例外にするため、同期がまるごと失敗する。
+    // ここで無視する設定にして、未設定のフィールドは単に書かない扱いにする。
+    db = initializeFirestore(app, { ignoreUndefinedProperties: true });
     storage = getStorage(app);
     const region = (import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION as string) || 'asia-northeast1';
     fns = getFunctions(app, region);

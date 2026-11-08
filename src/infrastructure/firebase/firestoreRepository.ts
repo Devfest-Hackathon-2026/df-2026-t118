@@ -151,7 +151,9 @@ export async function syncToFirestore(payload: {
       ),
     ]);
     return true;
-  } catch {
+  } catch (err) {
+    // 握りつぶすと「クラウド同期に一時失敗しました」の原因が追えなくなるため、理由だけ残す
+    console.warn('[firestore] 同期に失敗しました', err);
     return false;
   }
 }

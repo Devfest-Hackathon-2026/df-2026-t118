@@ -23,6 +23,11 @@ if [ -f package.json ]; then
   if [ ! -d node_modules ]; then
     if [ -f package-lock.json ]; then npm ci; else npm install; fi
   fi
+  # functions/ はルートとは別パッケージ。型検査とビルドが firebase-admin / firebase-functions /
+  # genkit の実型を参照するため、ルートと同じタイミングで依存を入れる。
+  if [ -f functions/package.json ] && [ ! -d functions/node_modules ]; then
+    if [ -f functions/package-lock.json ]; then npm ci --prefix functions; else npm install --prefix functions; fi
+  fi
   npm run lint --if-present
   npm run typecheck --if-present
   npm run build --if-present

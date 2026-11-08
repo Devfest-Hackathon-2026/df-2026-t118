@@ -47,16 +47,35 @@ npm run dev    # http://localhost:5173
 
 ## デプロイ（Firebase Hosting & Functions）
 
-Firebase プロジェクトを作ってから、`.firebaserc` を用意する。
+配信先は Firebase プロジェクト `hannari-hustlers`（`.firebaserc` にコミット済み、Blaze プラン）。
+
+### 初回だけ必要な準備
+
+1. **Web アプリの登録** — Firebase コンソール → プロジェクトの概要 → ＋ アプリを追加 → Web（`</>`）。
+   表示された設定値を `.env` の `VITE_FIREBASE_*`（キー名は `.env.example` 参照）に入れる。
+   これが未設定だとビルドは通るが、実行時に Firebase へ接続しない。
+2. **CLI ログイン** — 課金クレジットが付いた Google アカウントで入る。
+   どの請求先アカウントが紐づいているかは、コンソールの 設定 → 使用量と請求 で確認する。
+3. **Gemini の API キーを Secret Manager に登録** — Functions は `GEMINI_API_KEY` を
+   `defineSecret` で読む。`.env` の値はローカル開発専用で、デプロイ先には渡らない。
 
 ```bash
 npx firebase-tools login
-npx firebase-tools use --add
-npm run build
-npx firebase-tools deploy --only hosting,firestore:rules,storage
+npx firebase-tools functions:secrets:set GEMINI_API_KEY
 ```
 
-`firebase.json` は `dist/` を配信する設定で用意済み。`.firebaserc` はプロジェクト ID が決まってから作る。
+### デプロイ
+
+```bash
+bash scripts/check.sh
+npx firebase-tools deploy --only hosting,functions,firestore:rules,storage
+```
+
+`npm run build` は `dist/`（Hosting）と `functions/lib/`（Functions）の両方を生成する。
+`firebase.json` の rewrites で `/api/*` が `asia-northeast1` の各 Functions に向く。
+
+> 提出要件により、デプロイ URL は **2026-11-14 まで稼働させる**。
+> 環境の作り直しや課金停止は事前に確認すること（[AGENTS.md](AGENTS.md)）。
 
 ## 開発フロー
 

@@ -31,12 +31,15 @@ export function getLastAiExecutionSource(): AiExecutionSource {
 }
 
 async function invokeFlow<TIn, TOut>(flowName: string, input: TIn): Promise<TOut | null> {
-  // 1. まず開発サーバー（Vite Node ミドルウェア） / Hosting リライトの /api/<flowName> を試す
+  // 1. まず開発サーバー（Vite Node ミドルウェア） / Hosting リライトの /api/<flowName> を試す。
+  // Hosting のリライト先は onCall 関数なので、ボディは onCall の規約どおり { data: ... } で包む。
+  // 包まないと onCall が "Request body is missing data." で 400 を返し、毎回 httpsCallable への
+  // フォールバックに1往復ぶん余計な時間がかかる。Vite 側のミドルウェアも data を外して読む。
   try {
     const res = await fetch(`/api/${flowName}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
+      body: JSON.stringify({ data: input }),
     });
     const contentType = res.headers.get('content-type') || '';
     if (res.ok && contentType.includes('application/json')) {
