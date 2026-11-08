@@ -11,7 +11,8 @@ Claude Code / Gemini CLI / Codex など、このリポジトリで動くすべ�
 - 提出締切: 2026-11-10（火）19:00 → `docs/submission.md`
 - 要件: **確定（2026-11-06）** → `docs/requirements.md`
 - 技術スタック: **確定（2026-11-06）** → `docs/decisions/002-web-stack.md`（ADR-001 は廃止）
-- Web (PWA) + three.js を Firebase Hosting に配信。バックエンドは Cloud Functions + Genkit。言語は TypeScript に統一
+- Web + three.js を Firebase Hosting に配信。バックエンドは Cloud Functions + Gemini API。言語は TypeScript に統一
+- ホーム画面に追加できる（manifest / アイコン）。**オフライン動作は対応しない**（[`docs/implementation-status.md`](docs/implementation-status.md) 2.4）
 
 ## 提出要件（違反すると審査対象外）
 
@@ -58,6 +59,7 @@ Claude Code / Gemini CLI / Codex など、このリポジトリで動くすべ�
 
 | 作業 | 参照先 |
 |---|---|
+| 実装がどこまで動いているかの確認 | `docs/implementation-status.md`（本番で検証した結果。設計ドキュメントより優先する） |
 | 機能実装・スコープ判断 | `docs/requirements.md` |
 | 提出物に関わる作業 | `docs/submission.md`、`docs/product-doc.md` |
 | 構成・設計に関わる変更 | `docs/architecture.md` |

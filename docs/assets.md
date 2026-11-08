@@ -25,7 +25,7 @@
 | 7 | 島アプリのUI（S1〜S9） | 生成AIで作った素材 | — | Claude / Gemini | — | `src/components/screens/`・`src/styles/styles.css` | — | 要確認 | デザインは Claude Design のプロトタイプ v2 をベースに、PC（右ドロワー）＆スマホ（ボトムシート）両対応の React + TypeScript コンポーネントとして実装 |
 | 8 | アプリアイコン | 生成AIで作った素材 | — | Claude Code | — | `public/icons/*.png` | — | 要確認 | 外部素材を使わず、Python の zlib だけで PNG を直接生成。空色の地に島とドームを描いたもの |
 | 9 | React / React DOM | OSS ライブラリ | https://react.dev/ | Meta Platforms, Inc. | MIT | `src/` フロントエンド UI | なし | 不要 | ADR-002 / ADR-003 に基づき S1〜S9 の画面コンポーネントで使用 |
-| 10 | Firebase JS SDK / Firebase Functions / Genkit | OSS ライブラリ | https://firebase.google.com/ | Google | Apache License 2.0 | `src/services/backendClient.ts`, `functions/` | なし | 不要 | Auth / Firestore / Storage / Cloud Functions / Genkit 連携で使用 |
+| 10 | Firebase JS SDK / Firebase Functions / Genkit | OSS ライブラリ | https://firebase.google.com/ | Google | Apache License 2.0 | `src/infrastructure/firebase/`, `functions/` | なし | 不要 | Auth / Firestore / Storage / Cloud Functions で使用。Genkit は依存に含まれるが実行経路外 |
 | 11 | Zod | OSS ライブラリ | https://zod.dev/ | Colin McDonnell | MIT | `functions/src/schemas.ts` | なし | 不要 | Gemini 構造化出力の型検証で使用 |
 
 ### Material Symbols で収録しているアイコン

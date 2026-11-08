@@ -43,10 +43,10 @@ ADR-001 の 6 観点の比較は済んでいるため、ここでは**提出要�
 | アプリ | Vite + React + TypeScript | `island-app/` の画面遷移と状態を移植する |
 | 3D | three.js（`island-app/vendor/island.js` をそのまま使う） | React から `useEffect` でマウントする。**検証済みの質感を変えない** |
 | 配信 | **Firebase Hosting** | 提出要件の実行基盤リストに含まれる。ここで要件 1 を満たす |
-| PWA | `vite-plugin-pwa` | ホーム画面に追加できる。デモはスマホの画面収録 |
+| PWA | `vite-plugin-pwa` | ホーム画面に追加できる。デモはスマホの画面収録<br>**※ 実装は手書きの `public/sw.js`。かつ登録コードが無く未稼働 → [`../implementation-status.md`](../implementation-status.md) 2.4** |
 | バックエンド | Cloud Functions for Firebase + Genkit (TypeScript) | ADR-001 から据え置き |
 | 定時ジョブ | Scheduled Functions（`onSchedule`） | 据え置き |
-| モデル | Gemini（Vertex AI 経由） | 据え置き。プロダクトが使う AI は Gemini に統一（提出要件） |
+| モデル | Gemini（Vertex AI 経由） | 据え置き。プロダクトが使う AI は Gemini に統一（提出要件）<br>**※ 実装は Gemini API（Google AI Studio）を採用。この行は決定時点の記録 → [`../implementation-status.md`](../implementation-status.md) 2.2** |
 | データ | Firestore / Cloud Storage for Firebase | 据え置き |
 | 認証 | Firebase Authentication（匿名認証から始める） | デモの導線を短くする |
 | 通知 | FCM（Web Push） | iOS はホーム画面に追加した PWA でのみ受け取れる。デモは画面内の演出で代替できるようにする |

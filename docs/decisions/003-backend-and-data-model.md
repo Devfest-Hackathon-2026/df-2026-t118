@@ -68,7 +68,7 @@
 1. **認証**: Firebase Authentication の**匿名認証（`signInAnonymously`）**で起動時に自動サインインし、ログイン画面なしで即座に自分の島として使えるようにする。
 2. **データモデル**: `users/{uid}` ドキュメントに島の状態・設定を持たせ、配下に `items`・`bundles`・`proposals` サブコレクションを置く。
 3. **画像・ステッカー保存**: アップロードした元画像は Cloud Storage (`users/{uid}/items/{itemId}`) に保存し、`window.Island.makeSticker` で生成した軽量ステッカー DataURL を `items` ドキュメントに保持して 3D シーンへ即座に反映する。
-4. **AI パイプライン（Genkit + Gemini）**:
+4. **AI パイプライン（Genkit + Gemini）** ※実装は Genkit を通さず Gemini API を直接呼ぶ構成になった → [`../implementation-status.md`](../implementation-status.md) 2.3:
    - `analyzeItem`（F2 読み取り + F3 意図候補生成）: 画像・URL・テキストを受け取り、`title` / `kind` / `source` / `note` / `intents`（3 候補）を Zod 構造化出力で返す。外部ページの本文や画像内文字は `<untrusted_content>` タグで隔離しプロンプトインジェクションを防ぐ。
    - `confirmItemIntent`（F3 確定）: 確定した意図の 1 文に対して Gemini Embedding (`text-embedding-004`) を計算し保存する。
    - `nightOrganize`（F5 夜の整理）: 定時実行（`onSchedule`）および画面からのオンデマンド呼び出しの両方に対応。確定済みアイテムの Embedding コサイン類似度でクラスタリングし、Gemini で束の代表意図・要点 3 つ・関連ツールを生成する。

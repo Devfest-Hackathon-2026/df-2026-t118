@@ -6,13 +6,14 @@
 
 カテゴリ: クリエイティブ / 提出締切: **2026-11-10（火）19:00**
 
+- **実装がどこまで動いているか**: [docs/implementation-status.md](docs/implementation-status.md)（本番で検証した結果と、するべきこと）
 - 提出物と残りスケジュール: [docs/submission.md](docs/submission.md)
 - 要件: [docs/requirements.md](docs/requirements.md)
 - アーキテクチャ: [docs/architecture.md](docs/architecture.md)
 - 画面遷移・ユースケース解説（PC版 / スマホ版スクリーンショット付き）: [docs/ui-and-usecases.md](docs/ui-and-usecases.md)
 - 技術選定: [docs/tech-selection.md](docs/tech-selection.md) / [docs/decisions/](docs/decisions)
 
-技術スタックは [ADR-002](docs/decisions/002-web-stack.md) および [ADR-003](docs/decisions/003-backend-and-data-model.md) で確定。Web (PWA) + Vite + React + TypeScript + three.js を Firebase Hosting に配信 / Cloud Functions for Firebase + Genkit / Firestore / Gemini。言語は TypeScript に統一。
+技術スタックは [ADR-002](docs/decisions/002-web-stack.md) および [ADR-003](docs/decisions/003-backend-and-data-model.md) で確定。Web + Vite + React + TypeScript + three.js を Firebase Hosting に配信 / Cloud Functions for Firebase / Firestore / Cloud Storage / Gemini API。言語は TypeScript に統一。
 
 ## セットアップ
 
@@ -97,7 +98,7 @@ git push -u origin feat/<topic>
 | パス | 内容 |
 |---|---|
 | `src/` | フロントエンド実装（Vite + React + TypeScript: `components/`, `hooks/`, `services/`, `constants/`, `types/`, `styles/`, `vendor/`） |
-| `functions/` | バックエンド実装（Cloud Functions for Firebase + Genkit + Gemini: `schemas.ts`, `aiCore.ts`, `index.ts`） |
+| `functions/` | バックエンド実装（Cloud Functions for Firebase + Gemini API · 4層アーキテクチャ） |
 | `public/` | 静的アセット（セルフホストフォント `fonts/`、PWA アイコン `icons/`、`manifest.webmanifest`、`sw.js`） |
 | `AGENTS.md` | AI エージェント共通ルール（`CLAUDE.md` / `GEMINI.md` から参照） |
 | `scripts/check.sh` | 検証の門（機密情報・lint・型・ビルド・テスト） |

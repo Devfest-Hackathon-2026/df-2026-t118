@@ -64,9 +64,13 @@ MVP の件数（数十件）なら、関数内で総当たりの余弦類似度�
 実装を始める前に確かめる。料金・提供状況は変わるので、公式ドキュメントで見る。
 
 - [x] **ハッカソンの審査要件** → [`submission.md`](submission.md) に明文化されていた。実行基盤（Firebase Hosting など）の使用とデプロイ URL が必須。**これにより ADR-001 を廃止し、ADR-002 に差し替えた**
-- [ ] クレジットが Vertex AI 側でしか消費されないか。Gemini API（Google AI Studio）経由との違い
+- [x] **クレジットが Vertex AI 側でしか消費されないか。Gemini API（Google AI Studio）経由との違い**
+  → **実装は Gemini API（`generativelanguage.googleapis.com`、API キー方式）を使っている。Vertex AI は使っていない。**
+  提出要件 3「AI は Gemini に統一」は満たすが、`product-doc.md` と ADR の「Vertex AI 経由」という記述は実装と食い違っていた（修正済み）。
+  **残る判断**: Vertex AI に寄せるか、Gemini API のままにするか。Google Cloud クレジットの消費先に関わるため人間が決める。
+  詳細は [`implementation-status.md`](implementation-status.md) 2.2
 - [ ] Firestore ベクトル検索の料金とリージョン
-- [ ] Genkit flow を定時実行から呼ぶ書き方
+- [x] ~~Genkit flow を定時実行から呼ぶ書き方~~ → **Genkit を通さない方針に決定したため不要**（[`implementation-status.md`](implementation-status.md) 2.3）
 - [ ] iOS の PWA で Web Push が届く条件（ホーム画面への追加が要るか）
 - [ ] モバイル Safari の WebGL で `island-app/` が 60fps を保てるか ← **実機で測る**
 

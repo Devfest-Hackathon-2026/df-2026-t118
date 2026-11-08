@@ -3,6 +3,8 @@
 状態: 確定（2026-11-07）。技術スタック・バックエンド・実アプリ化仕様・Project/Area 初回アンケート＆即時紐づけ仕様は [`decisions/002-web-stack.md`](decisions/002-web-stack.md)、[`decisions/003-backend-and-data-model.md`](decisions/003-backend-and-data-model.md)、[`decisions/004-project-area-and-onboarding.md`](decisions/004-project-area-and-onboarding.md) で承認済み（[ADR-001](decisions/001-tech-stack.md) は廃止）。
 要件は [`requirements.md`](requirements.md)、PC／スマホ両対応の画面遷移・ユースケース解説は [`ui-and-usecases.md`](ui-and-usecases.md) を参照。
 
+> **このファイルは設計を書いている。設計どおりに動いていない箇所があるため、本番で何が動いていて何が動いていないかは [`implementation-status.md`](implementation-status.md) を正とすること。**
+
 ---
 
 ## 1. レイヤードアーキテクチャ全体構成（フロントエンド & バックエンド統一 4 層）
@@ -38,7 +40,7 @@ flowchart TB
     FE_APP --> FE_INFRA
     FE_INFRA --> FE_DOM
 
-    FE_INFRA <-->|"HTTPS / Genkit Flow / Vite Middleware"| BE_PRES
+    FE_INFRA <-->|"HTTPS (Hosting rewrite /api/*) / Callable / Vite Middleware"| BE_PRES
 
     BE_PRES --> BE_APP
     BE_PRES --> BE_DOM
@@ -65,7 +67,7 @@ hannari-hustlers/
 │   ├── fonts/                        # セルフホストフォント (Instrument Sans / Zen Kaku Gothic New / JetBrains Mono / Material Symbols)
 │   ├── icons/                        # PWA アイコン (192px / 512px)
 │   ├── manifest.webmanifest          # PWA マニフェスト
-│   └── sw.js                         # Service Worker
+│   └── sw.js                         # Service Worker（未使用。オフライン対応は入れない方針 → implementation-status.md 2.4）
 ├── src/                              # フロントエンド (Vite + React + TypeScript · 4層アーキテクチャ)
 │   ├── main.tsx                      # エントリポイント (React ルートマウント)
 │   ├── domain/                       # 【Domain 層】外部フレームワーク非依存の型・定数・純粋ビジネスルール
@@ -84,7 +86,7 @@ hannari-hustlers/
 │   │   │   ├── firestoreRepository.ts# Firestore (items / bundles / proposals) & localStorage 永続化アダプタ
 │   │   │   └── storageClient.ts      # Cloud Storage ステッカー画像アップロード
 │   │   ├── ai/
-│   │   │   └── aiFlowClient.ts       # Genkit Callable Functions / ローカル AI エンドポイント呼び出し
+│   │   │   └── aiFlowClient.ts       # /api/* (Hosting rewrite) → httpsCallable → ローカル engine の 3 段フォールバック
 │   │   └── media/
 │   │       └── stickerMaker.ts       # 画像リサイズ・window.Island.makeSticker による切り抜きステッカー生成
 │   ├── presentation/                 # 【Presentation 層】UI 描画・画面・3D キャンバスブリッジ
@@ -113,7 +115,7 @@ hannari-hustlers/
 │   │   └── island.d.ts               # モジュール宣言
 │   └── __tests__/
 │       └── aiCore.test.ts            # Domain ルール・AI ユースケース・コサイン類似度束ねの単体テスト
-└── functions/                        # バックエンド (Cloud Functions for Firebase + Genkit · 4層アーキテクチャ)
+└── functions/                        # バックエンド (Cloud Functions for Firebase + Gemini API · 4層アーキテクチャ)
     ├── package.json
     ├── tsconfig.json
     └── src/
@@ -126,10 +128,10 @@ hannari-hustlers/
         │   └── scheduledBatchUseCases.ts # 全ユーザーの夜整理・朝提案バッチ処理ユースケース
         ├── infrastructure/           # 【Infrastructure 層】外部通信・LLM・Firestore Admin アダプタ
         │   ├── urlMetadataFetcher.ts # SSRF 対策付き URL 取得 & <untrusted_content> 隔離
-        │   ├── geminiClient.ts       # Gemini 2.5 Flash JSON 生成 & text-embedding-004 呼び出し
+        │   ├── geminiClient.ts       # Gemini REST 呼び出し（JSON 生成・埋め込み）・モデルフォールバック・タイムアウト
         │   └── firestoreAdminRepository.ts # Firebase Admin Firestore 読み書きリポジトリ
         └── presentation/             # 【Presentation 層】Cloud Functions トリガー受付・バリデーション
-            ├── callableHandlers.ts   # Genkit Flow 定義 & onCall HTTPS ハンドラ
+            ├── callableHandlers.ts   # onCall ハンドラ（Genkit Flow 定義は残骸。実行経路外・使わない方針）
             └── scheduledHandlers.ts  # Cloud Scheduler 定時トリガー (23:00 JST / 08:00 JST)
 ```
 
@@ -163,12 +165,12 @@ hannari-hustlers/
    - AI 送信同意トグル（`aiConsentGranted`）を備え、同意 OFF の場合は AI へ送信せず手動入力・手動分類で保存を完結できる（R02）。
 2. **ステッカー切り抜き**: 画像がある場合は Application 層経由で [`stickerMaker.ts`](../src/infrastructure/media/stickerMaker.ts) が `window.Island.makeSticker` を呼び、3D カード用の切り抜きステッカー（DataURL）を生成する。
 3. **AI 解析と意図 3 候補生成（F2 / F3: `analyzeItem`）**:
-   - URL が含まれる場合、[`urlMetadataFetcher.ts`](../functions/src/infrastructure/urlMetadataFetcher.ts) が IPv4 / IPv6 プライベートアドレスを拒否（SSRF 対策）した上で OGP・本文テキストを取得し、`<untrusted_content>` タグで隔離して [`geminiClient.ts`](../functions/src/infrastructure/geminiClient.ts) (`gemini-2.5-flash`) に渡す。Instagram 等のログイン壁や取得失敗時は `urlFetched: false` を返し、読めたふりをせず UI で誠実に案内する（R04）。
+   - URL が含まれる場合、[`urlMetadataFetcher.ts`](../functions/src/infrastructure/urlMetadataFetcher.ts) が IPv4 / IPv6 プライベートアドレスを拒否（SSRF 対策）した上で OGP・本文テキストを取得し、`<untrusted_content>` タグで隔離して [`geminiClient.ts`](../functions/src/infrastructure/geminiClient.ts) (モデル指定は `geminiClient.ts` 参照) に渡す。Instagram 等のログイン壁や取得失敗時は `urlFetched: false` を返し、読めたふりをせず UI で誠実に案内する（R04）。
    - Gemini が Zod スキーマ（[`AnalyzeItemOutputSchema`](../functions/src/domain/schemas.ts)）に従い、タイトル・種別・要約メモ・**「やりたいことの 1 文」候補 3 つ**を返す。
 4. **意図の確定・即時 Project/Area 紐づけ・Embedding 計算（F3 / F4: `confirmItemIntent`）**:
    - ユーザーは 3 候補から 1 つをタップ、自由編集、**「見るだけ・参考（Resources）」**、または **「あとで（Someday ？カード）」** を選べる。
    - 保存先チップで Project / Area を明示選択できるほか、「AI にまかせる」場合は `confirmItemIntent` が `targets`（登録済み Project / Area 一覧）と照合し、`confidence === 'clear'` のとき即時紐づけを行う（曖昧な場合は Someday に保留）。
-   - `text-embedding-004` で 768 次元の埋め込みベクトルを計算し、[`firestoreRepository.ts`](../src/infrastructure/firebase/firestoreRepository.ts) が Firestore (`users/{uid}/items/{itemId}`) および `localStorage` に保存する。
+   - Gemini の埋め込み API で埋め込みベクトルを計算し、[`firestoreRepository.ts`](../src/infrastructure/firebase/firestoreRepository.ts) が Firestore (`users/{uid}/items/{itemId}`) および `localStorage` に保存する。
    - 3D の島の上空にカードが浮かび上がる（`anim: 'addCard'`）。
 
 ### B. 夜の整理パイプライン（提案・承認型 F5: `nightOrganize`）
@@ -176,7 +178,7 @@ hannari-hustlers/
 - **起動契機**: 定時ジョブ（`scheduledNightOrganize`: 毎日 23:00 JST）またはヘッダーの **「束ねる（夜）」** ボタン。
 - **処理**:
   1. [`clustering.ts`](../functions/src/domain/clustering.ts) が意図確定済み（`intentConfirmed: true`、かつ `intentMode !== 'reference'`）の未整理保存物同士の Embedding コサイン類似度を計算し、クラスタリングする。
-  2. クラスタごとに [`aiUseCases.ts`](../functions/src/application/aiUseCases.ts) がユーザーの登録済み Project / Area（`targets`）および Gemini (`gemini-2.5-flash`) を用いて **束の代表意図・AI 要点 3 つ・関連ツール名・PARA カテゴリ** を生成し、`approvalStatus: 'pending'`（提案状態）として保存する。
+  2. クラスタごとに [`aiUseCases.ts`](../functions/src/application/aiUseCases.ts) がユーザーの登録済み Project / Area（`targets`）および Gemini (モデル指定は `geminiClient.ts` 参照) を用いて **束の代表意図・AI 要点 3 つ・関連ツール名・PARA カテゴリ** を生成し、`approvalStatus: 'pending'`（提案状態）として保存する。
   3. 島が夜のライティング（`phase: 'night'`）に切り替わり、空に浮かんでいたカードが島の地面へ降りて **束のスポット** になる（`anim: 'settle'`）。ユーザーは束の詳細シート（`S5BundleSheet`）で 1 タップ承認（または別 Project / Area への変更）を行える。
 
 ### C. 今日の一歩パイプライン（F6 / F05: `morningPropose`）
@@ -196,7 +198,11 @@ hannari-hustlers/
 
 ---
 
-## 5. バックエンド API 一覧（Cloud Functions + Genkit Flows）
+## 5. バックエンド API 一覧（Cloud Functions）
+
+> Genkit の `defineFlow` による Flow 定義は [`callableHandlers.ts`](../functions/src/presentation/callableHandlers.ts) に存在するが、
+> callable ハンドラは Flow を経由せずユースケース関数を直接呼んでいるため、**Flow は実行経路に入っていない**
+> （[`implementation-status.md`](implementation-status.md) 2.3）。
 
 | Flow / 関数名 | 種別 | 定義ファイル | 入出力（Zod スキーマ） |
 |---|---|---|---|
