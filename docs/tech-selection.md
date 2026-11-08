@@ -67,11 +67,35 @@ MVP の件数（数十件）なら、関数内で総当たりの余弦類似度�
 - [x] **クレジットが Vertex AI 側でしか消費されないか。Gemini API（Google AI Studio）経由との違い**
   → **実装は Gemini API（`generativelanguage.googleapis.com`、API キー方式）を使っている。Vertex AI は使っていない。**
   提出要件 3「AI は Gemini に統一」は満たすが、`product-doc.md` と ADR の「Vertex AI 経由」という記述は実装と食い違っていた（修正済み）。
-  **残る判断**: Vertex AI に寄せるか、Gemini API のままにするか。Google Cloud クレジットの消費先に関わるため人間が決める。
+  **決定（2026-11-08）**: Vertex AI には寄せず、Gemini API のままにする。移行コストが提出までの残り時間に見合わないため。
   詳細は [`implementation-status.md`](implementation-status.md) 2.2
-- [ ] Firestore ベクトル検索の料金とリージョン
+- [x] **Firestore ベクトル検索の料金とリージョン**（2026-11-08 公式ドキュメントで確認）
+  - 課金は **kNN インデックスエントリ 100 件ごとに 1 read**。返ってきたドキュメントの read は別途かかる。
+    公式の例では、limit 5 で 1,550 件のインデックスエントリを読んだクエリが「ドキュメント 5 read ＋ インデックスエントリ 16 read」になる
+  - `find_nearest` にはベクトルインデックスが必要。`where` で事前に絞る場合は複合ベクトルインデックスが要る
+  - クエリベクトルは 2048 次元まで、結果は 1000 件まで
+  - リージョン別のベクトル専用料金は公式に記載が見つからなかった。Firestore の「ロケーション別の料金」に従うものとみられる（**要確認のまま**）
+  - **ただし、このプロジェクトでは使っていない。** 束ねは Cloud Functions 内で総当たりのコサイン類似度を計算しており
+    （`functions/src/domain/clustering.ts`）、ベクトルインデックスを作っていないため、この課金は発生しない。
+    件数が増えてインデックスに移す段階で、改めてここを見ること
+  - 出典: [Search with vector embeddings](https://firebase.google.com/docs/firestore/vector-search) /
+    [Understand Cloud Firestore billing](https://firebase.google.com/docs/firestore/pricing) /
+    [Firestore pricing](https://cloud.google.com/firestore/pricing)
 - [x] ~~Genkit flow を定時実行から呼ぶ書き方~~ → **Genkit を通さない方針に決定したため不要**（[`implementation-status.md`](implementation-status.md) 2.3）
-- [ ] iOS の PWA で Web Push が届く条件（ホーム画面への追加が要るか）
-- [ ] モバイル Safari の WebGL で `island-app/` が 60fps を保てるか ← **実機で測る**
+- [x] **iOS の PWA で Web Push が届く条件**（2026-11-08 WebKit / Apple のドキュメントで確認）
+  - **ホーム画面への追加が必須**。Safari のタブで開いたままでは届かない。iOS / iPadOS 16.4 以降
+  - manifest の `display` を `standalone` にしておく必要がある（本プロジェクトの `manifest.webmanifest` は `standalone` 済み）
+  - 通知の許可要求は、ボタンのタップなど**ユーザー操作に応じて**出す必要がある
+  - Apple Developer Program への加入は不要。標準の Push API / Notifications API / **Service Worker** で動く
+  - **結論: このプロジェクトでは Web Push は実現できない。** オフライン対応を入れない判断（[`implementation-status.md`](implementation-status.md) 2.4）に伴い
+    Service Worker を登録していないため、Web Push の前提を満たさない。通知相当の体験はアプリ内の「しまの連絡箱」で代替する
+  - 出典: [Web Push for Web Apps on iOS and iPadOS](https://webkit.org/blog/13878/web-push-for-web-apps-on-ios-and-ipados/) /
+    [WebKit Features in Safari 16.4](https://webkit.org/blog/13966/webkit-features-in-safari-16-4/)
+- [ ] **モバイル Safari の WebGL で島が 60fps を保てるか ← 未実測。実機が要る**
+  - デスクトップのブラウザやモバイルエミュレーションで測っても答えにならない（GPU が別物）ため、数値は出していない
+  - 測り方: iPhone を Mac に USB 接続し、Safari の「開発」メニューから
+    `https://hannari-hustlers.web.app` を選んで Web Inspector を開き、**タイムライン**で島をドラッグしながら記録する。
+    見るのは平均 fps と、回転中にフレーム落ちが出るかどうか
+  - 落ちる場合に効きそうな順: 影の解像度を下げる → `devicePixelRatio` の上限を 2 に制限する → 建物の個数上限（現状 4 棟）を下げる
 
 Expo / Flutter 関連の確認項目は、Web に決めたため不要になった。調査の記録は上に残す。

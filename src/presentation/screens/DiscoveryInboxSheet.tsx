@@ -142,6 +142,9 @@ export const DiscoveryInboxSheet: React.FC<{
           <p style={{ fontSize: '12.5px', color: 'var(--muted)', margin: '4px 0 0' }}>
             あなたの好きなアーティストや信頼する編集部の記事から、気になるライブや展示のお便りをそっと届けます。眺めるだけでよく、タスク化や買い物はすすめません。
           </p>
+          <p style={{ fontSize: '11.5px', color: 'var(--muted)', margin: '6px 0 0' }}>
+            ※ 現在は<strong>検証用の固定データ</strong>のみを参照しています。外部の検索サービスには接続していません。登場する人物・会場・情報元はすべて架空です。
+          </p>
         </div>
       </div>
 
@@ -202,6 +205,12 @@ export const DiscoveryInboxSheet: React.FC<{
                 {latestReport.card.curatorType === 'artist_official'
                   ? '公式サイトで確認済み'
                   : '編集部おすすめ＋公式確認済み'}
+              </span>
+              {/* 外部検索はまだ固定の参照データしか見ていない。
+                  「公式サイトで確認済み」だけを出すと本物を照合したように読めてしまうため、
+                  カード上で必ず並べて出す（docs/implementation-status.md 2.5） */}
+              <span className="chip chip--soft" style={{ fontSize: '10.5px' }}>
+                検証用の参照データ（架空）
               </span>
               <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
                 チェック日: {new Date(latestReport.card.verifiedAt).toLocaleDateString('ja-JP')}

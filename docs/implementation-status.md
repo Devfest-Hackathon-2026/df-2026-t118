@@ -167,16 +167,17 @@ Vertex AI へ寄せると認証方式（API キー → サービスアカウン�
 | 3 | Gemini 呼び出しの失敗を `console.warn` に残す | [#25](https://github.com/Kambara-Michiru/hannari-hustlers/pull/25) |
 | 4 | docs の「Vertex AI」「Genkit」「オフライン」表記を実装に合わせる | [#24](https://github.com/Kambara-Michiru/hannari-hustlers/pull/24) |
 | 5 | 本番で保存を通し、Gemini 出力と 768 次元の埋め込みが返ることを確認 | — |
+| 6 | 検証で作った匿名ユーザーのテストデータを Firestore から削除（31 ドキュメント） | — |
+| 7 | 能動発見が固定の参照データであることを UI と提出物に明示（カードのチップ・連絡箱の説明・`product-doc.md` 7.1 / 6.3） | — |
+| 8 | `tech-selection.md` の未確認チェックを公式ドキュメントで確認して記入 | — |
+| 9 | `architecture.md` のディレクトリ構造に能動発見まわりのファイルを追記 | — |
 
 ### 残っていること
 
 | # | やること | 優先 |
 |---|---|---|
-| 6 | **ピッチ用スライドの表記を直す** — 「Gemini on Vertex AI」→「Gemini API」、「Cloud Functions + Genkit」→「Cloud Functions + Gemini API」、PWA のオフライン主張を落とす | P0 |
-| 7 | 能動発見が固定の参照データであることを、デモと提出物で明示する | P1 |
-| 8 | `tech-selection.md` の未確認チェックを埋める（Firestore ベクトル検索の料金、iOS の Web Push 条件、モバイル Safari の WebGL fps） | P2 |
-| 9 | `architecture.md` のディレクトリ構造に能動発見まわりのファイルを追記 | P2 |
-| 10 | 検証で作った匿名ユーザーのテストデータを Firestore から消す | P2 |
+| 10 | **モバイル Safari の WebGL で島が 60fps を保てるかの実測** — 実機（iPhone）と Mac の Web Inspector が要る。測り方は [`tech-selection.md`](tech-selection.md) の要確認に書いた | P2 |
+| 11 | Firestore ベクトル検索の**リージョン別料金**は公式に記載が見つからず未確定。ただし現状このプロジェクトはベクトルインデックスを使っていないため課金は発生しない | P3 |
 
 ---
 

@@ -24,14 +24,14 @@ flowchart TB
         FE_PRES["presentation/<br>App.tsx · screens/ (S1〜S9, Settings) · canvas/IslandCanvas.tsx"]
         FE_APP["application/<br>usecases/useIslandUseCases.ts (F1〜F8 オーケストレーション)"]
         FE_INFRA["infrastructure/<br>firebase/ (Auth, Firestore, Storage) · ai/aiFlowClient.ts · media/stickerMaker.ts"]
-        FE_DOM["domain/<br>models/islandModels.ts · constants/islandConstants.ts · rules/islandRules.ts"]
+        FE_DOM["domain/<br>models/islandModels.ts · models/proactiveDiscoveryModels.ts<br>constants/islandConstants.ts · rules/islandRules.ts · rules/proactiveDiscoveryRules.ts"]
     end
 
     subgraph BE["バックエンド（functions/src/ · 4層レイヤードアーキテクチャ）"]
         BE_PRES["presentation/<br>callableHandlers.ts · scheduledHandlers.ts"]
-        BE_APP["application/<br>aiUseCases.ts · scheduledBatchUseCases.ts"]
-        BE_INFRA["infrastructure/<br>geminiClient.ts · urlMetadataFetcher.ts · firestoreAdminRepository.ts"]
-        BE_DOM["domain/<br>schemas.ts (Zod) · clustering.ts (Cosine Similarity)"]
+        BE_APP["application/<br>aiUseCases.ts · scheduledBatchUseCases.ts · proactiveDiscoveryUseCases.ts"]
+        BE_INFRA["infrastructure/<br>geminiClient.ts · urlMetadataFetcher.ts · firestoreAdminRepository.ts · discoverySearchAdapter.ts"]
+        BE_DOM["domain/<br>schemas.ts (Zod) · clustering.ts (Cosine Similarity)<br>proactiveDiscoveryEngine.ts · proactiveDiscoverySchemas.ts"]
     end
 
     FE_PRES --> FE_APP
@@ -72,11 +72,13 @@ hannari-hustlers/
 │   ├── main.tsx                      # エントリポイント (React ルートマウント)
 │   ├── domain/                       # 【Domain 層】外部フレームワーク非依存の型・定数・純粋ビジネスルール
 │   │   ├── models/
-│   │   │   └── islandModels.ts       # エンティティ定義 (SavedItem, Bundle, Proposal, ParaCategory 等)
+│   │   │   ├── islandModels.ts       # エンティティ定義 (SavedItem, Bundle, Proposal, ParaCategory 等)
+│   │   │   └── proactiveDiscoveryModels.ts # 能動発見のエンティティ (ConfirmedSubject, ResearchReport, DiscoveryQuestion 等)
 │   │   ├── constants/
 │   │   │   └── islandConstants.ts    # キャラクター定義・PARA タブ定義・時間帯テーマ配色
 │   │   └── rules/
-│   │       └── islandRules.ts        # 純粋ドメインルール (見出し・吹き出し算出、夜の整理対象抽出、フォールバック生成)
+│   │       ├── islandRules.ts        # 純粋ドメインルール (見出し・吹き出し算出、夜の整理対象抽出、束の所属判定、フォールバック生成)
+│   │       └── proactiveDiscoveryRules.ts # 能動発見の純粋ルール (同名判定、検索語プレビュー、初期値の組み立て)
 │   ├── application/                  # 【Application 層】ユースケースのオーケストレーション
 │   │   └── usecases/
 │   │       └── useIslandUseCases.ts  # F1〜F8 のユースケース制御・状態遷移・Infrastructure 呼び出し統合
@@ -107,7 +109,9 @@ hannari-hustlers/
 │   │   │   ├── S7SortView.tsx        # S7: 週 1 の仕分け（Someday/Maybe のスワイプ仕分け）
 │   │   │   ├── S8SearchSheet.tsx     # S8: 一覧・検索（PARA 5 タブ + キーワード横断検索）
 │   │   │   ├── S9ItemSheet.tsx       # S9: 保存物の詳細（意図の編集・PARA 変更・元リンク遷移）
-│   │   │   └── SettingsSheet.tsx     # 設定（キャラクター・3D 質感・提案表示形式・データ初期化）
+│   │   │   ├── SettingsSheet.tsx     # 設定（キャラクター・3D 質感・提案表示形式・あんしん設定・データ初期化）
+│   │   │   ├── IslandSettingsSection.tsx # お便りのあんしん設定（Project/Area 選択・同意・月予算上限）
+│   │   │   └── DiscoveryInboxSheet.tsx # しまの連絡箱（お便り・しつもんカード・「好き」帳・調べ方の記録）
 │   │   └── styles/
 │   │       └── styles.css            # デザイントークン & PC 右ドロワー / スマホボトムシートのレスポンシブ CSS
 │   ├── vendor/
@@ -122,14 +126,18 @@ hannari-hustlers/
         ├── index.ts                  # エントリポイント（Presentation 層のハンドラを再エクスポート）
         ├── domain/                   # 【Domain 層】スキーマとクラスタリング数理ロジック
         │   ├── schemas.ts            # 入出力 Zod スキーマ定義 (AnalyzeItem, ConfirmIntent, NightOrganize, MorningPropose)
-        │   └── clustering.ts         # コサイン類似度・決定論的フォールバックベクトル・貪欲クラスタリング
+        │   ├── clustering.ts         # コサイン類似度・決定論的フォールバックベクトル・貪欲クラスタリング
+        │   ├── proactiveDiscoveryEngine.ts   # 能動発見の判定ロジック（同意確認・公式照合・質問生成・抑制）
+        │   └── proactiveDiscoverySchemas.ts  # 能動発見の Zod スキーマ
         ├── application/              # 【Application 層】AI ユースケースと定時バッチオーケストレーション
         │   ├── aiUseCases.ts         # F2/F3 解析・意図確定 Embedding・F5 夜の束ね・F6 朝の提案ユースケース
-        │   └── scheduledBatchUseCases.ts # 全ユーザーの夜整理・朝提案バッチ処理ユースケース
+        │   ├── scheduledBatchUseCases.ts # 全ユーザーの夜整理・朝提案バッチ処理ユースケース
+        │   └── proactiveDiscoveryUseCases.ts # 能動発見サイクル（同意確認 → 検索 → 公式照合 → カード/質問生成）
         ├── infrastructure/           # 【Infrastructure 層】外部通信・LLM・Firestore Admin アダプタ
         │   ├── urlMetadataFetcher.ts # SSRF 対策付き URL 取得 & <untrusted_content> 隔離
         │   ├── geminiClient.ts       # Gemini REST 呼び出し（JSON 生成・埋め込み）・モデルフォールバック・タイムアウト
-        │   └── firestoreAdminRepository.ts # Firebase Admin Firestore 読み書きリポジトリ
+        │   ├── firestoreAdminRepository.ts # Firebase Admin Firestore 読み書きリポジトリ
+        │   └── discoverySearchAdapter.ts   # 外部検索アダプタ。現状は固定の参照データのみ（実際の検索 API は呼ばない）
         └── presentation/             # 【Presentation 層】Cloud Functions トリガー受付・バリデーション
             ├── callableHandlers.ts   # onCall ハンドラ（Genkit Flow 定義は残骸。実行経路外・使わない方針）
             └── scheduledHandlers.ts  # Cloud Scheduler 定時トリガー (23:00 JST / 08:00 JST)
