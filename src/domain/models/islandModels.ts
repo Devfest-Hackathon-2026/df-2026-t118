@@ -9,7 +9,7 @@ export type ParaCategory = 'Projects' | 'Areas' | 'Resources' | 'Archives' | 'So
 
 export type ItemKind = 'INSTAGRAM' | 'ARTICLE' | 'SCREENSHOT' | 'PHOTO' | 'VIDEO' | 'NOTE';
 
-export type CharacterKind = 'poko' | 'tomori' | 'fumi';
+export type CharacterKind = 'poko' | 'tomori' | 'fumi' | 'mofu';
 export type IslandStyleKind = 'puffy' | 'clay' | 'diorama';
 export type ProposalStyleKind = 'sheet' | 'letter';
 export type PhaseKind = 'day' | 'morning' | 'night';

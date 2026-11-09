@@ -27,6 +27,9 @@
 | 9 | React / React DOM | OSS ライブラリ | https://react.dev/ | Meta Platforms, Inc. | MIT | `src/` フロントエンド UI | なし | 不要 | ADR-002 / ADR-003 に基づき S1〜S9 の画面コンポーネントで使用 |
 | 10 | Firebase JS SDK / Firebase Functions / Genkit | OSS ライブラリ | https://firebase.google.com/ | Google | Apache License 2.0 | `src/infrastructure/firebase/`, `functions/` | なし | 不要 | Auth / Firestore / Storage / Cloud Functions で使用。Genkit は依存に含まれるが実行経路外 |
 | 11 | Zod | OSS ライブラリ | https://zod.dev/ | Colin McDonnell | MIT | `functions/src/schemas.ts` | なし | 不要 | Gemini 構造化出力の型検証で使用 |
+| 12 | モフ（3D キャラクター） | 生成AIで作った素材 | — | RodinAI | 要確認 | `public/models/mofu.glb` 島の4人目のキャラクター | **あり** — glTF-Transform で Draco 圧縮・テクスチャを WebP に変換（23MB → 1.35MB） | 要確認 | RodinAI で生成。プロンプトの要旨: 要確認 |
+| 13 | モフのアイコン画像 | 生成AIで作った素材 | — | ChatGPT | 要確認 | `public/characters/mofu.png` 吹き出し・シートのキャラアイコン | なし | 要確認 | ChatGPT で生成。プロンプトの要旨: 要確認 |
+| 14 | Draco デコーダ（three r128 同梱） | OSS ライブラリ | https://github.com/google/draco | Google | Apache License 2.0 | `public/draco/` モフの GLB の展開 | なし（`node_modules/three/examples/js/libs/draco/gltf/` からコピー） | 不要 | ADR-006。GLTFLoader / DRACOLoader は three r128（#5）に同梱のもの |
 
 ### Material Symbols で収録しているアイコン
 

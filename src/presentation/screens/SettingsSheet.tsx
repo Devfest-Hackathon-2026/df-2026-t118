@@ -177,6 +177,7 @@ export const SettingsSheet: React.FC<{
             <option value="poko">ぽこ (Poko)</option>
             <option value="tomori">ともり (Tomori)</option>
             <option value="fumi">ふみ (Fumi)</option>
+            <option value="mofu">モフ (Mofu)</option>
           </select>
         </label>
 

@@ -6,7 +6,23 @@ export const Icon: React.FC<{ name: string; className?: string }> = ({ name, cla
   <span className={`icon${className ? ` ${className}` : ''}`}>{name}</span>
 );
 
+// GLB のキャラクター（#43）は CSS で描いた顔の代わりに画像を出す
+export const AVATAR_IMAGES: Partial<Record<CharacterKind, string>> = {
+  mofu: '/characters/mofu.png',
+};
+
 export const Avatar: React.FC<{ kind: CharacterKind; size: number }> = ({ kind, size }) => {
+  const image = AVATAR_IMAGES[kind];
+  if (image) {
+    return (
+      <span
+        className="avatar avatar--img"
+        style={{ '--s': `${size}px` } as React.CSSProperties}
+      >
+        <img src={image} alt="" />
+      </span>
+    );
+  }
   const count = AVATAR_PARTS[kind] || 8;
   return (
     <span

@@ -1,5 +1,5 @@
 // three.js island diorama — window.Island.mount(el, opts) / window.Island.snapshot(opts, w, h)
-// opts: { style:'clay'|'diorama', character:'poko'|'tomori'|'fumi', phase:'day'|'morning'|'night',
+// opts: { style:'clay'|'diorama', character:'poko'|'tomori'|'fumi'|'mofu', phase:'day'|'morning'|'night',
 //         cards:[{kind,title,color,unknown}], bundle:bool, building:0..1|null, empty:bool,
 //         anim:null|'birth'|'addCard'|'settle'|'build', charAt:'default'|'build'|'bundle',
 //         zoom, focus:'character', onCardTap(i), onCharTap() }
@@ -120,7 +120,15 @@
     [-0.08, 0.08].forEach((x) => { inner.add(M(Cy(0.028, 0.028, 0.09, 8), m(C.ink), x, 0.07, 0)); const f = M(S(0.04, 10, 8), m(C.ink), x, 0.025, 0.02); f.scale.set(1, 0.5, 1.4); inner.add(f); });
     return { g, idle(t) { inner.rotation.z = Math.sin(t * 2.2) * 0.05; inner.position.y = Math.abs(Math.sin(t * 2.2)) * 0.02; } };
   }
-  function makeChar(kind, night) { return kind === 'tomori' ? charTomori(night) : kind === 'fumi' ? charFumi() : charPoko(); }
+  // #43: GLB のキャラクター（モフ）。読み込みは非同期なので、届くまで・失敗したときはぽこを出す。
+  // ローダーは src/infrastructure/three/characterModels.ts が window.IslandCharacterModels として渡す
+  function charModel(kind) {
+    const poko = charPoko(); const g = poko.g; let inner = null;
+    const api = window.IslandCharacterModels;
+    const ready = api ? api.load(kind).then((obj) => { while (g.children.length) g.remove(g.children[0]); inner = new THREE.Group(); inner.add(obj); g.add(inner); }).catch(() => {}) : Promise.resolve();
+    return { g, ready, idle(t) { if (!inner) return poko.idle(t); inner.scale.y = 1 + Math.sin(t * 2.4) * 0.03; g.position.y = g.userData.baseY + Math.abs(Math.sin(t * 2.4)) * 0.025; } };
+  }
+  function makeChar(kind, night) { return kind === 'mofu' ? charModel(kind) : kind === 'tomori' ? charTomori(night) : kind === 'fumi' ? charFumi() : charPoko(); }
 
   // ---------- islands ----------
   const K = { pink: 0xf1a1b4, lime: 0xc6df5a, green: 0x4fb45e, green2: 0x93cf62, blue: 0x4f6ad9, sky: 0x7dbde8, orange: 0xf3a243, red: 0xe2553f, cream: 0xf4ecdc, brown: 0xa8714a, ink: 0x3a2e2a, yellow: 0xf6d25a };
@@ -441,6 +449,7 @@
     const ch = makeChar(o.character, night); const charBuild = spots.charBuild || [spots.build[0] - 0.75, spots.top, spots.build[2] + 0.55]; const cpos = o.charAt === 'build' ? charBuild : o.charAt === 'bundle' ? [spots.bundle[0] - 0.5, spots.top, spots.bundle[2]] : spots.char;
     ch.g.position.set(...cpos); ch.g.userData.baseY = cpos[1]; ch.g.rotation.y = 0.35; world.add(ch.g);
     const pending = [];
+    if (ch.ready) pending.push(ch.ready);
     const cards = (o.cards || []).slice(0, 4).map((c, i) => {
       if (c.sticker && !c.unknown) {
         const g = new THREE.Group(); const t = new THREE.Texture(); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;

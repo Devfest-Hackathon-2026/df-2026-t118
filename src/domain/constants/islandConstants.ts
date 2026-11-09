@@ -16,12 +16,14 @@ export const NAMES: Record<CharacterKind, string> = {
   poko: 'ぽこ',
   tomori: 'ともり',
   fumi: 'ふみ',
+  mofu: 'モフ',
 };
 
 export const AVATAR_PARTS: Record<CharacterKind, number> = {
   poko: 8,
   tomori: 9,
   fumi: 9,
+  mofu: 0,
 };
 
 export const PARA_TABS: Array<[string, string, ParaCategory]> = [
