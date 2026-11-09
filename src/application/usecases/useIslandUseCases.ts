@@ -24,6 +24,7 @@ import type {
 import {
   archiveItemsOfBundle,
   computeLocalDateString,
+  computeSavedReaction,
   inferBuildingKindFromBundle,
   isItemInBundle,
   selectItemsForNightOrganize,
@@ -169,6 +170,14 @@ export function useIslandUseCases() {
   const [notifVisible, setNotifVisible] = useState<boolean>(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [aiBusyLabel, setAiBusyLabel] = useState<string | null>(null);
+  // 保存した直後のキャラクターの一言（#44）。しばらくしたら通常の一言に戻す
+  const [savedReaction, setSavedReaction] = useState<string | null>(null);
+  const savedReactionTimerRef = useRef<number | null>(null);
+  const showSavedReaction = (text: string) => {
+    if (savedReactionTimerRef.current) window.clearTimeout(savedReactionTimerRef.current);
+    setSavedReaction(text);
+    savedReactionTimerRef.current = window.setTimeout(() => setSavedReaction(null), 12000);
+  };
   const [bundleFromProposal, setBundleFromProposal] = useState<boolean>(false);
 
   const toastTimerRef = useRef<number | null>(null);
@@ -793,6 +802,10 @@ export function useIslandUseCases() {
     };
 
     const isReference = Boolean(opts?.isReference);
+    const reaction = computeSavedReaction(
+      isUnknown ? 'later' : isReference ? 'reference' : 'intent',
+      analyzed.title
+    );
     const chosenTargetId =
       opts?.explicitTargetId !== undefined ? opts.explicitTargetId : draft.selectedTargetId;
     const targets = buildActiveTargets();
@@ -943,6 +956,7 @@ export function useIslandUseCases() {
         }
         setNonce((n) => n + 1);
         flash(plc.toast);
+        showSavedReaction(reaction);
       });
       return;
     }
@@ -998,6 +1012,7 @@ export function useIslandUseCases() {
       setHint(false);
       setNonce((n) => n + 1);
       flash(plc.toast);
+      showSavedReaction(reaction);
     });
   };
 
@@ -2067,6 +2082,7 @@ export function useIslandUseCases() {
     notifVisible,
     toastMsg,
     aiBusyLabel,
+    savedReaction,
     bundleFromProposal,
     setBundleFromProposal,
     firebaseConnected,

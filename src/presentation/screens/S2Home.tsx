@@ -25,6 +25,7 @@ export const S2Home: React.FC<{
   pendingQuestionCount?: number;
   hint: boolean;
   aiBusyLabel: string | null;
+  savedReaction?: string | null;
   onOpenSearch: () => void;
   onOpenSave: () => void;
   onOpenProposal: () => void;
@@ -48,6 +49,7 @@ export const S2Home: React.FC<{
   pendingQuestionCount = 0,
   hint,
   aiBusyLabel,
+  savedReaction = null,
   onOpenSearch,
   onOpenSave,
   onOpenProposal,
@@ -187,6 +189,7 @@ export const S2Home: React.FC<{
             pendingQuestionCount,
             phase,
             aiBusyLabel,
+            savedReaction,
           })}
           tag={tag}
         />

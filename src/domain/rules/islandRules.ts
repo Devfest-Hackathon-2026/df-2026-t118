@@ -142,8 +142,11 @@ export function computeBubbleText(params: {
   pendingQuestionCount?: number;
   phase: PhaseKind;
   aiBusyLabel?: string | null;
+  savedReaction?: string | null;
 }): string {
   if (params.aiBusyLabel) return params.aiBusyLabel;
+  // 保存した直後は、前の話題より先に保存への反応を返す（#44）
+  if (params.savedReaction) return params.savedReaction;
   const confirmedFloating = params.floatingItems.filter((c) => c.intentConfirmed).length;
   const hasUnknown = params.floatingItems.some((c) => !c.intentConfirmed);
 
@@ -168,6 +171,30 @@ export function computeBubbleText(params: {
   if (confirmedFloating >= 2) return 'たくさん集めたね。「束ねる（夜）」でまとめられるよ。';
   if (confirmedFloating === 1) return '拾っておいたよ。もう1つ集まったら束ねよう。';
   return '気になったものを「＋ 保存する」から送ってね。ここに浮かべるよ。';
+}
+
+// 保存した直後のキャラクターの一言（#44）。どう保存したかで言い方を変える
+export function computeSavedReaction(
+  how: 'intent' | 'reference' | 'later',
+  title: string
+): string {
+  const t = title.trim();
+  const short = t.length > 14 ? `${t.slice(0, 14)}…` : t;
+  const name = short ? `「${short}」` : 'それ';
+  if (how === 'reference') return `${name}は参考に、そっと置いておくね。`;
+  if (how === 'later') return `${name}、どうしたいか決まったら教えてね。`;
+  return `${name}、島に浮かべたよ。やりたいこと、覚えておくね。`;
+}
+
+// 保存後の画面で「本文を取得できなかった」の案内を別枠で出すか（#44）。
+// サーバーの note がすでに同じことを伝えているなら、重ねて出さない
+export function shouldShowFetchNotice(params: {
+  url: string;
+  urlFetched?: boolean;
+  note: string;
+}): boolean {
+  if (!params.url.trim() || params.urlFetched !== false) return false;
+  return !params.note.includes('取得');
 }
 
 // ホーム画面の英語見出しと日本語サブタイトルを算出する純粋ルール

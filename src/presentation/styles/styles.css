@@ -701,7 +701,18 @@ button:disabled { opacity: 0.6; cursor: wait; }
 .opt--on { background: var(--ink); color: #fff; box-shadow: 0 12px 24px -12px rgba(0, 0, 0, .4); }
 .inputpill { display: flex; gap: 8px; align-items: center; background: #fff; border: 1px solid var(--ink); border-radius: var(--r-pill); padding: 6px 6px 6px 16px; min-height: 44px; }
 .inputpill input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font: 400 14px var(--jp); color: var(--ink); }
-.save__foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+/* #44: 候補が主役。自分で書く・保存先・決めずに保存は控えめにする */
+.save__custom { align-self: flex-start; font-size: 12.5px; }
+.save__target { border-top: 1px solid var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.save__target > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; font: 500 12.5px var(--jp); color: var(--muted); }
+.save__target > summary::-webkit-details-marker { display: none; }
+.save__target > summary::after { content: '＋'; }
+.save__target[open] > summary::after { content: '−'; }
+.save__target[open] > .row-chips { margin-top: 8px; }
+.save__target-now { margin-left: auto; color: var(--ink); font-size: 12px; }
+.save__later { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.save__later-opts { display: flex; align-items: center; gap: 4px; }
+.save__later-opts .linkish { font-size: 12px; }
 
 /* ---------- S4 今日の1提案（ユーザーの言葉・ビジュアル主役 ＋ AI一歩は控えめな小文字ヒント） ---------- */
 

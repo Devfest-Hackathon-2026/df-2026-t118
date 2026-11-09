@@ -81,6 +81,7 @@ export const App: React.FC = () => {
     notifVisible,
     toastMsg,
     aiBusyLabel,
+    savedReaction,
     bundleFromProposal,
     setBundleFromProposal,
     firebaseConnected,
@@ -210,6 +211,7 @@ export const App: React.FC = () => {
               pendingBundlesCount: pendingBundles.length,
               phase,
               aiBusyLabel,
+              savedReaction,
             })
           )
         }
@@ -244,6 +246,7 @@ export const App: React.FC = () => {
             pendingQuestionCount={pendingQuestionCount}
             hint={hint}
             aiBusyLabel={aiBusyLabel}
+            savedReaction={savedReaction}
             onOpenSearch={() => openSheet('search')}
             onOpenSave={handleOpenSave}
             onOpenProposal={handleOpenProposal}

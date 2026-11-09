@@ -5,6 +5,7 @@ import type {
   ProjectEntity,
 } from '../../domain/models/islandModels';
 import type { SaveDraft } from '../types/uiTypes';
+import { shouldShowFetchNotice } from '../../domain/rules/islandRules';
 import { Avatar, Icon } from '../common/UiParts';
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB (F02)
@@ -224,6 +225,14 @@ export const S3SaveSheet: React.FC<{
     }, 320);
   };
 
+  const hasTargets = activeProjects.length > 0 || activeAreas.length > 0;
+  const selectedTargetName =
+    activeProjects.find((p) => p.id === draft.selectedTargetId)?.name ||
+    activeAreas.find((a) => a.id === draft.selectedTargetId)?.name ||
+    null;
+
+  // #44: 「これ、どうしたい？」を主役にする。並びは
+  // プレビュー → 候補3つ → 自分で書く → 保存先（折りたたみ）→ 決めずに保存
   return (
     <>
       <div className="save__item">
@@ -240,55 +249,17 @@ export const S3SaveSheet: React.FC<{
           </span>
           <span className="save__title">{analyzed.title}</span>
           <span className="save__note">{analyzed.note}</span>
+          {shouldShowFetchNotice({
+            url: draft.url,
+            urlFetched: analyzed.urlFetched,
+            note: analyzed.note,
+          }) ? (
+            <span className="save__note">
+              リンク先の本文は読めなかったので、URLだけ記録するね。
+            </span>
+          ) : null}
         </div>
       </div>
-
-      {draft.url && analyzed.urlFetched === false ? (
-        <div
-          className="card"
-          style={{ padding: '10px 12px', fontSize: '12px', color: 'var(--muted)' }}
-        >
-          ※リンク先の本文は自動取得できなかったため、URLのみ記録します（必要なら「入力を直す」からメモやスクショを補足できます）
-        </div>
-      ) : null}
-
-      {activeProjects.length > 0 || activeAreas.length > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span className="eyebrow eyebrow--muted">
-            LINK TO PROJECT / AREA · 保存先の紐づけ（任意）
-          </span>
-          <div className="row-chips">
-            <button
-              className={`chip${!draft.selectedTargetId ? ' chip--ink' : ' chip--soft'}`}
-              onClick={() => onChangeDraft({ selectedTargetId: null })}
-            >
-              AIで自動照合 / 保留
-            </button>
-            {activeProjects.map((proj) => (
-              <button
-                key={proj.id}
-                className={`chip${
-                  draft.selectedTargetId === proj.id ? ' chip--ink' : ' chip--soft'
-                }`}
-                onClick={() => onChangeDraft({ selectedTargetId: proj.id })}
-              >
-                Project: {proj.name}
-              </button>
-            ))}
-            {activeAreas.map((area) => (
-              <button
-                key={area.id}
-                className={`chip${
-                  draft.selectedTargetId === area.id ? ' chip--ink' : ' chip--soft'
-                }`}
-                onClick={() => onChangeDraft({ selectedTargetId: area.id })}
-              >
-                Area: {area.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
 
       <div className="save__ask">
         <Avatar kind={character} size={30} />
@@ -329,32 +300,73 @@ export const S3SaveSheet: React.FC<{
             <Icon name="check" />
           </button>
         </div>
+      ) : (
+        <button className="linkish save__custom" onClick={() => setCustomOpen(true)}>
+          <Icon name="edit" />
+          自分で書く
+        </button>
+      )}
+
+      {hasTargets ? (
+        <details className="save__target">
+          <summary>
+            保存先を変える（任意）
+            <span className="save__target-now">{selectedTargetName || 'おまかせ'}</span>
+          </summary>
+          <div className="row-chips">
+            <button
+              className={`chip${!draft.selectedTargetId ? ' chip--ink' : ' chip--soft'}`}
+              onClick={() => onChangeDraft({ selectedTargetId: null })}
+            >
+              おまかせ
+            </button>
+            {activeProjects.map((proj) => (
+              <button
+                key={proj.id}
+                className={`chip${
+                  draft.selectedTargetId === proj.id ? ' chip--ink' : ' chip--soft'
+                }`}
+                onClick={() => onChangeDraft({ selectedTargetId: proj.id })}
+              >
+                Project: {proj.name}
+              </button>
+            ))}
+            {activeAreas.map((area) => (
+              <button
+                key={area.id}
+                className={`chip${
+                  draft.selectedTargetId === area.id ? ' chip--ink' : ' chip--soft'
+                }`}
+                onClick={() => onChangeDraft({ selectedTargetId: area.id })}
+              >
+                Area: {area.name}
+              </button>
+            ))}
+          </div>
+        </details>
       ) : null}
 
-      <div className="save__foot" style={{ flexWrap: 'wrap', gap: '8px' }}>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          {!resolvingMode ? (
-            <button className="linkish" onClick={onBackToInput}>
-              <Icon name="arrow_back" />
-              入力を直す
-            </button>
-          ) : null}
-          <button className="linkish" onClick={() => setCustomOpen((v) => !v)}>
-            <Icon name="edit" />
-            自分で書きなおす
+      <div className="save__later">
+        {!resolvingMode ? (
+          <button className="linkish" onClick={onBackToInput}>
+            <Icon name="arrow_back" />
+            入力を直す
           </button>
-        </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        ) : (
+          <span />
+        )}
+        <div className="save__later-opts">
+          <span>決めずに保存:</span>
           {onSaveReference ? (
             <button
-              className="btn btn--ghost btn--pill btn--sm"
+              className="linkish"
               onClick={onSaveReference}
               title="行動提案には使わず、参考資料（Resources）として残します"
             >
-              見るだけ・参考
+              見るだけ
             </button>
           ) : null}
-          <button className="btn btn--ghost btn--pill btn--sm" onClick={onSaveLater}>
+          <button className="linkish" onClick={onSaveLater}>
             あとで
           </button>
         </div>
