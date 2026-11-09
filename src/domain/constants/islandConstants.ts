@@ -33,36 +33,26 @@ export const PARA_TABS: Array<[string, string, ParaCategory]> = [
 ];
 
 // F01 初回アンケート（4問）の選択肢定義
-export const ONBOARDING_PROJECT_GENRES: Array<{
-  genre: string;
-  defaultName: string;
-  defaultGoal: string;
+// F01 Q3「いま、やってみたいことは？」の選択肢。
+// 達成目標ではなく、やってみたい・気になることで並べる（#40）。
+// 名前のキーワードが inferBuildingKindFromBundle の振り分けに効くため、
+// 6 種の建物（B1〜B6）がそれぞれ建つ言葉を選んである。
+export const ONBOARDING_PROJECT_IDEAS: Array<{
+  label: string;
+  goal: string;
 }> = [
-  {
-    genre: 'アプリ制作',
-    defaultName: 'アプリのデモを完成させる',
-    defaultGoal: '画面構成や3D島・発表スライドを仕上げる',
-  },
-  {
-    genre: '作品・ポートフォリオ',
-    defaultName: 'ポートフォリオを完成させる',
-    defaultGoal: '自分の作品の見せ方とレイアウトを整える',
-  },
-  {
-    genre: '勉強・資格',
-    defaultName: '授業ノートと情報整理の仕組みを作る',
-    defaultGoal: '見返しやすく集中できる学習環境を作る',
-  },
-  {
-    genre: '就活・仕事',
-    defaultName: '面接とプレゼンの準備をする',
-    defaultGoal: '自分の言葉でわかりやすく伝えられるようにする',
-  },
-  {
-    genre: '部屋づくり',
-    defaultName: '自分の作業スペースを整える',
-    defaultGoal: '机まわりと収納を落ち着く空間にする',
-  },
+  // B3 書斎タワー
+  { label: '新しいツールを試す', goal: '気になっていたツールを、ひとつ触ってみる' },
+  // B5 ドレッサー・ブティック
+  { label: '新しいメイクを探す', goal: '保存したメイクを、一度ためしてみる' },
+  // B4 ガラスの温室
+  { label: 'あさんぽに挑戦する', goal: '朝、すこしだけ歩いてみる' },
+  // B6 カルチャー＆フォトテント
+  { label: '撮りたいポーズを集める', goal: '撮りたい写真のイメージをためておく' },
+  // B2 ベーカリー＆キッチン
+  { label: '作ってみたいレシピを試す', goal: '保存したレシピを、ひとつ作ってみる' },
+  // B1 制作アトリエ（どのキーワードにも当たらない既定）
+  { label: '気になるデザインを真似する', goal: '好きなデザインを、ひとつ真似してみる' },
 ];
 
 export const ONBOARDING_AREA_PRESETS: string[] = [
@@ -93,6 +83,24 @@ export const ONBOARDING_EXPECTATION_PRESETS: string[] = [
   'いつか試したいことを思い出したい',
   '眺めて楽しみたい',
 ];
+
+// #40 ストーリーボード: Q1（よく保存するもの）→ Q2（大切にしたいこと）の対応。
+// 答えが次の画面を変えることで、アンケートではなく対話にする。
+export const ONBOARDING_INTEREST_TO_AREA: Record<string, string> = {
+  生活Tips: '暮らし',
+  レシピ: '食事・料理',
+  'UI/UX': '創作',
+  ツール: '仕事',
+  ファッション: 'ファッション',
+  場所: '趣味',
+  作品: '創作',
+  学び: '学び',
+};
+
+// 「好き」帳の入力例。実在の人物を出さないため、既存の連絡箱と同じ架空名を使う（AGENTS.md）。
+export const ONBOARDING_FAVORITE_EXAMPLES = {
+  name: '綾野かなえ',
+} as const;
 
 export const SUPPORTED_TIMEZONES: string[] = [
   'Asia/Tokyo',

@@ -65,6 +65,9 @@ export const IslandCanvas: React.FC<IslandCanvasProps> = ({
   const onCardTapRef = useRef(onCardTap);
   const onCharTapRef = useRef(onCharTap);
   const [flatMode, setFlatMode] = useState<boolean>(false);
+  // 島のマウントは非同期（three.js とフォントの読み込み待ち）。
+  // その間に変わった状態を取りこぼさないよう、マウント完了後に一度だけ描画し直す
+  const [, forceRender] = useState<number>(0);
 
   floatingRef.current = floatingItems;
   onCardTapRef.current = onCardTap;
@@ -143,6 +146,8 @@ export const IslandCanvas: React.FC<IslandCanvasProps> = ({
             nonce,
           ]);
           ctrlRef.current = window.Island.mount(containerRef.current, opts);
+          // マウント前に進んだ状態（初回体験のカメラ寄せなど）をここで反映させる
+          forceRender((n) => n + 1);
           onReady?.();
         });
         return;

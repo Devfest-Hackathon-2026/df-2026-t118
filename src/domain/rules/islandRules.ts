@@ -81,14 +81,17 @@ export function inferBuildingKindFromBundle(
     return 'kitchen_cafe';
   }
   if (
-    /obsidian|second brain|情報整理|ノート|勉強|面接|就活|スライド|プレゼン|プログラミング|読書|本|書斎|統計/.test(
+    // 「ツール」は island-growth-story.md の B3 の分類（ツール・学び・仕事・Second Brain）に入っているが、
+    // この表から漏れていた。入れないと「新しいツールを試す」が B1 に落ちる
+    /obsidian|second brain|ツール|情報整理|ノート|勉強|面接|就活|スライド|プレゼン|プログラミング|読書|本|書斎|統計/.test(
       text
     )
   ) {
     return 'study_tower';
   }
   if (
-    /バジル|栽培|プランター|植物|花|ベランダ|机|収納|模様替え|部屋|暮らし|日記|睡眠|温室/.test(
+    // 「さんぽ」は「あさんぽ」に部分一致させるため（日々の暮らしの側に置く）
+    /バジル|栽培|プランター|植物|花|ベランダ|机|収納|模様替え|部屋|暮らし|さんぽ|散歩|日記|睡眠|温室/.test(
       text
     )
   ) {

@@ -87,7 +87,10 @@ export const App: React.FC = () => {
     flash,
     openSheet,
     closeSheet,
+    onboardingIsland,
     handleCompleteOnboarding,
+    handleOnboardingStep,
+    handleSkipOnboarding,
     handleAddProject,
     handleAddArea,
     handleUpdateProfile,
@@ -137,6 +140,8 @@ export const App: React.FC = () => {
   ).length;
 
   const floatingItems = items.filter((i) => i.floating && i.para !== 'Archives');
+  // #40: 初回体験のあいだは、島が見本を使って「このアプリで何ができるか」を実演する
+  const islandCards = onboardingIsland ? onboardingIsland.items : floatingItems;
   const pendingBundles = bundles.filter(
     (b) => b.approvalStatus === 'pending' && b.para !== 'Archives'
   );
@@ -185,15 +190,17 @@ export const App: React.FC = () => {
         styleKind={islandStyle}
         character={character}
         phase={phase}
-        floatingItems={floatingItems}
-        hasBundleOnIsland={hasBundleOnIsland}
-        buildingProgress={buildingProgress}
+        floatingItems={islandCards}
+        hasBundleOnIsland={onboardingIsland ? onboardingIsland.bundle : hasBundleOnIsland}
+        buildingProgress={onboardingIsland ? onboardingIsland.building : buildingProgress}
         buildingKind={buildingKind}
-        extraBuildings={builtBuildings.length > 1 ? builtBuildings.slice(1, 4) : []}
+        extraBuildings={
+          onboardingIsland || builtBuildings.length <= 1 ? [] : builtBuildings.slice(1, 4)
+        }
         anim={anim}
         charAt={charAt}
         nonce={nonce}
-        onCardTap={handleCardTap}
+        onCardTap={onboardingIsland ? () => {} : handleCardTap}
         onCharTap={() =>
           flash(
             computeBubbleText({
@@ -208,16 +215,14 @@ export const App: React.FC = () => {
         }
       />
 
-      {/* S1 はじめて（初回オンボーディング 4問 + スキップ可） */}
+      {/* S1 はじめて（#40 島が実演する7画面のストーリーボード・スキップ可） */}
       <div className="layer layer--s1">
         {screen === 's1' ? (
           <S1Welcome
             character={character}
-            onStart={() => {
-              setScreen('home');
-              setAnim('none');
-            }}
+            onStart={handleSkipOnboarding}
             onCompleteOnboarding={handleCompleteOnboarding}
+            onStepChange={handleOnboardingStep}
           />
         ) : null}
       </div>

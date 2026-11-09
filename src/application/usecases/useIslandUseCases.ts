@@ -49,6 +49,12 @@ import {
   buildDefaultCuratedSources,
   buildDefaultDiscoverySettings,
 } from '../../domain/rules/proactiveDiscoveryRules';
+import {
+  buildFavoriteSubject,
+  buildOnboardingSampleItems,
+  islandStateForStep,
+  resolveSearchConsent,
+} from '../../domain/rules/onboardingRules';
 import { applyDiscoveryFeedbackIdempotent } from '../../../functions/src/application/proactiveDiscoveryUseCases';
 import { isFirebaseConfigured } from '../../infrastructure/firebase/firebaseClient';
 import {
@@ -89,6 +95,12 @@ export function useIslandUseCases() {
   const [day, setDay] = useState<number>(initial.day || 1);
   const [anim, setAnim] = useState<string>(hasInitialData ? 'none' : 'birth');
   const [charAt, setCharAt] = useState<string>('default');
+  // #40: 初回体験のあいだだけ島に見せる内容。保存データには入れない（表示専用）
+  const [onboardingIsland, setOnboardingIsland] = useState<{
+    items: SavedItem[];
+    bundle: boolean;
+    building: number | null;
+  } | null>(null);
   const [nonce, setNonce] = useState<number>(0);
   const [buildingProgress, setBuildingProgress] = useState<number | null>(
     initial.buildingProgress !== undefined ? initial.buildingProgress : null
@@ -467,6 +479,11 @@ export function useIslandUseCases() {
     areaNames: string[];
     interests: string[];
     expectations: string[];
+    // #40: 初回体験で「好き」帳の最初の1件と、外への検索の同意まで受け取る
+    favoriteName?: string;
+    favoriteHint?: string;
+    acceptedSearch?: boolean;
+    openSave?: boolean;
   }) => {
     const now = Date.now();
     const newProjects: ProjectEntity[] = params.projects
@@ -544,13 +561,76 @@ export function useIslandUseCases() {
       interests: params.interests,
       expectations: params.expectations,
     }));
+
+    // #40: 「好き」帳の最初の1件。同名の多い名前は既存の規則どおり確認待ちにする
+    const favorite = buildFavoriteSubject({
+      name: params.favoriteName || '',
+      hint: params.favoriteHint || '',
+    });
+    if (favorite) {
+      handleAddOrUpdateSubject({
+        ...favorite,
+        projectId: newProjects[0]?.id || newAreas[0]?.id || null,
+      });
+    }
+
+    // 外への検索は、名前を教えてもらったうえで本人がボタンを選んだときだけオンにする。
+    // ここで探すテーマ（Project / Area）も一緒に入れないと、オンにしても手がかりがない
+    const searchConsentGranted = resolveSearchConsent({
+      favoriteName: params.favoriteName || '',
+      userAcceptedSearch: Boolean(params.acceptedSearch),
+    });
+    setDiscoverySettings((prev) => ({
+      ...prev,
+      searchConsentGranted,
+      searchConsentAt: searchConsentGranted ? now : null,
+      enabledProjectIds:
+        newProjects.length > 0 ? newProjects.map((p) => p.id) : prev.enabledProjectIds,
+      enabledAreaIds: newAreas.length > 0 ? newAreas.map((a) => a.id) : prev.enabledAreaIds,
+      updatedAt: now,
+    }));
+
     setScreen('home');
-    setAnim('none');
+    exitOnboarding();
+    if (params.openSave) {
+      setResolvingItemId(null);
+      setSaveStep('input');
+      openSheet('save');
+    }
     if (newProjects.length > 0 || newAreas.length > 0) {
       flash(
         `Project ${newProjects.length}件・Area ${newAreas.length}件を島のクラスターに登録したよ`
       );
     }
+  };
+
+  // #40: 画面ごとに島が実演する。birth / addCard / settle / build は本番と同じアニメーション
+  const handleOnboardingStep = (step: number, interests: string[]) => {
+    const next = islandStateForStep(step);
+    setPhase(next.phase);
+    setCharAt(next.charAt);
+    setAnim(next.anim);
+    setOnboardingIsland({
+      items: buildOnboardingSampleItems(interests).slice(0, next.cardCount),
+      bundle: next.bundle,
+      building: next.building,
+    });
+    // 同じ画面に戻ってきたときもアニメーションを再生し直す
+    setNonce((n) => n + 1);
+  };
+
+  // 初回体験を抜けるときは、見本の島を捨てて本物の島に戻す
+  const exitOnboarding = () => {
+    setOnboardingIsland(null);
+    setCharAt('default');
+    setAnim('none');
+    setNonce((n) => n + 1);
+  };
+
+  const handleSkipOnboarding = () => {
+    exitOnboarding();
+    setPhase('day');
+    setScreen('home');
   };
 
   const handleAddProject = (name: string, goal: string) => {
@@ -1993,7 +2073,10 @@ export function useIslandUseCases() {
     flash,
     openSheet,
     closeSheet,
+    onboardingIsland,
     handleCompleteOnboarding,
+    handleOnboardingStep,
+    handleSkipOnboarding,
     handleAddProject,
     handleAddArea,
     handleUpdateProfile,

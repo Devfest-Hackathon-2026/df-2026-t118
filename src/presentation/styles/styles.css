@@ -357,9 +357,92 @@ button:disabled { opacity: 0.6; cursor: wait; }
 }
 .s1__head { display: flex; flex-direction: column; gap: 8px; }
 .s1__sub { font: 400 16px var(--jp); }
-.s1__foot { display: flex; flex-direction: column; gap: 12px; max-width: 460px; }
-.s1__card { display: flex; gap: 12px; align-items: flex-start; padding: 18px; }
+.s1__sub--muted { color: var(--muted); font-size: 14px; }
+.s1__foot { display: flex; flex-direction: column; gap: 12px; max-width: 460px; width: 100%; }
+/* 1画面につきガラスのパネルは1枚。島の上でも文字と選択肢が読めるようにする */
+.s1__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: 24px;
+  /* パネルは夜でも白いので、中の文字は時間帯に関係なく濃いインクで描く */
+  color: var(--ink);
+}
+.s1__say { display: flex; gap: 12px; align-items: flex-start; }
+/* 選択肢は2つで1行に収まる大きさにする（スマホ幅） */
+.s1__panel .chip { height: 34px; padding: 0 14px; font-size: 12.5px; }
 .s1__text { margin: 0; font: 500 15px/1.7 var(--jp); text-wrap: pretty; }
+
+/* #40 ストーリーボード: 上に進捗と戻る・スキップ、真ん中に1メッセージ、下にメインボタン */
+.s1__topbar { display: flex; align-items: center; gap: 12px; }
+.s1__back {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .8);
+  color: var(--ink);
+  cursor: pointer;
+}
+.s1__back--hidden { background: none; pointer-events: none; }
+.s1__progress {
+  flex: 1;
+  height: 6px;
+  border-radius: var(--r-pill);
+  /* 昼の空にも夜の海にも乗る中間のグレー。地と進捗で時間帯に左右されないようにする */
+  background: rgba(128, 128, 128, .3);
+  overflow: hidden;
+}
+.s1__progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  /* 文字色と同じ（昼は濃いインク、夜は白）*/
+  background: currentColor;
+  transition: width .32s ease;
+}
+.s1__skip { flex: none; }
+/* 選択肢が増えても、上の進捗や下のボタンに重ならないようにステージの中で収める */
+.s1__stage { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 24px 0; overflow-y: auto; }
+/* justify-content ではなく margin:auto で中央に置く。
+   こうしないと、内容があふれたときに上側がスクロールできず見出しが切れる */
+.s1__block { display: flex; flex-direction: column; gap: 14px; max-width: 520px; margin: auto 0; }
+.s1__stage--low .s1__block { margin-bottom: 0; }
+/* 質問は見出しより小さく。見出しが1メッセージ、質問はその下の1行 */
+.s1__q { font: 500 14.5px var(--jp); color: var(--ink); margin-top: 2px; }
+.s1__note { font: 400 12.5px/1.6 var(--jp); color: var(--muted); text-wrap: pretty; }
+/* 朝の提案の見本。ガラスのパネルの中に置くので、内側の箱として描く */
+.s1__sample {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--soft);
+}
+.s1__sample-label { font: 600 11.5px var(--jp); color: var(--muted-2); letter-spacing: .04em; }
+/* 集めたものが主役。一歩はその下に小さく添える */
+.s1__things { display: flex; gap: 8px; flex-wrap: wrap; }
+.s1__thing {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 22px 10px 9px;
+  border-radius: 14px;
+  font: 600 12px/1.35 var(--jp);
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--thing-c, #f7a6d6) 0 34%, #fff 34%);
+  box-shadow: 0 6px 14px -10px rgba(51, 48, 73, .5);
+  text-wrap: pretty;
+}
+.s1__thing--0 { --thing-c: #f7a6d6; }
+.s1__thing--1 { --thing-c: #9fdc3c; }
+.s1__sample-hint { font: 500 12.5px/1.6 var(--jp); color: var(--ink); text-wrap: pretty; }
+.s1__sample-note { font: 400 12px/1.6 var(--jp); color: var(--muted); text-wrap: pretty; }
 
 /* ---------- 通知とトースト ---------- */
 
