@@ -1115,7 +1115,7 @@ export function useIslandUseCases() {
         (i) => i.intentConfirmed && i.intentStatus !== 'reference' && i.para !== 'Archives'
       );
       if (confirmed.length === 0) {
-        flash('まずは「＋ 保存する」から気になるものを保存してね');
+        // 保存シート自体がキャラクターの案内つきなので、トーストは重ねない（#31）
         handleOpenSave();
         return;
       }

@@ -106,7 +106,7 @@ export const S2Home: React.FC<{
             className="navpill glass"
             onClick={onTriggerNight}
             disabled={Boolean(aiBusyLabel)}
-            title="浮かんでいる保存物を AI で Project / Area に束ね提案する (F5)"
+            title="似ている保存物をまとめる"
           >
             <Icon name="waves" />
             <span className="navpill__label">束ねる（夜）</span>
@@ -116,7 +116,7 @@ export const S2Home: React.FC<{
             className="navpill glass"
             onClick={onTriggerMorning}
             disabled={Boolean(aiBusyLabel)}
-            title="育った Project / 束から今日の一歩を提案してもらう (F6)"
+            title="今日の小さな一歩を提案してもらう"
           >
             <Icon name="auto_awesome" />
             <span className="navpill__label">今日の一歩（朝）</span>
@@ -125,7 +125,7 @@ export const S2Home: React.FC<{
           <button
             className="navpill glass"
             onClick={onOpenSort}
-            title="いつか箱の仕分け (F7)"
+            title="いつか箱の中身を仕分ける"
           >
             <Icon name="inventory_2" />
             <span className="navpill__label">
@@ -136,7 +136,7 @@ export const S2Home: React.FC<{
           <button
             className="navpill glass"
             onClick={onOpenSearch}
-            title="PARA一覧・検索 (S8)"
+            title="保存したものを一覧・検索する"
           >
             <Icon name="search" />
             <span className="navpill__label">一覧・検索</span>
@@ -146,7 +146,7 @@ export const S2Home: React.FC<{
             <button
               className="navpill glass"
               onClick={onOpenInbox}
-              title="連絡箱・好きなアーティストの公演発見・個別同意 (A01〜A04)"
+              title="届いたお便りを読む"
             >
               <Icon name="mail" />
               <span className="navpill__label">
@@ -159,7 +159,7 @@ export const S2Home: React.FC<{
             className="iconbtn iconbtn--glass"
             onClick={onOpenSettings}
             aria-label="設定"
-            title="Project / Area 編集・AI同意・島の質感設定"
+            title="設定"
           >
             <Icon name="more_horiz" />
           </button>
@@ -167,7 +167,7 @@ export const S2Home: React.FC<{
           <button
             className="navpill navpill--ink"
             onClick={onOpenSave}
-            title="インスピレーションを保存する (S3)"
+            title="気になったものを保存する"
           >
             <Icon name="add" />
             <span>保存する</span>
@@ -206,7 +206,9 @@ export const S2Home: React.FC<{
         <div className="home__hint">
           <span className="chip chip--hint">
             <Icon name="360" />
-            DRAG TO ORBIT · SCROLL / PINCH TO ZOOM
+            {/* タッチ端末にはスクロールがないので、CSS の pointer メディアクエリで出し分ける */}
+            <span className="hint--mouse">DRAG TO ORBIT · SCROLL / PINCH TO ZOOM</span>
+            <span className="hint--touch">DRAG TO ORBIT · PINCH TO ZOOM</span>
           </span>
         </div>
       ) : null}

@@ -122,11 +122,15 @@ export const S3SaveSheet: React.FC<{
           ) : (
             <>
               <Icon name="add_a_photo" />
-              <span>
-                {uploadingImg
-                  ? 'ステッカーに切り抜き中...'
-                  : 'スクショ・写真を選ぶ（PNG/JPEG/WebP・10MBまで）'}
-              </span>
+              {uploadingImg ? (
+                <span>ステッカーに切り抜き中...</span>
+              ) : (
+                // 狭い幅で「で）」だけが改行されないよう、2つの塊の間でだけ折り返す
+                <span className="nowrap-parts">
+                  <span>スクショ・写真を選ぶ</span>
+                  <span>（PNG/JPEG/WebP・10MBまで）</span>
+                </span>
+              )}
             </>
           )}
         </label>

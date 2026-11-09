@@ -397,6 +397,9 @@ button:disabled { opacity: 0.6; cursor: wait; }
   padding: 10px 18px;
   font: 500 13.5px var(--jp);
   box-shadow: 0 14px 30px -10px rgba(0, 0, 0, .4);
+  /* 日本語を文節で折り返す（対応ブラウザのみ。非対応でも従来どおり表示される） */
+  word-break: auto-phrase;
+  text-wrap: balance;
 }
 .toast .icon { color: #f7a6d6; font-size: 17px; }
 
@@ -784,9 +787,13 @@ button:disabled { opacity: 0.6; cursor: wait; }
 /* ---------- S8 検索・一覧 ---------- */
 
 .searchbar { display: flex; align-items: center; gap: 8px; height: 46px; border-radius: var(--r-pill); background: #fff; padding: 0 16px; font: 400 14px var(--jp); color: var(--muted-2); }
-.tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+/* 右端をフェードさせ、続きがあることに気づけるようにする。
+   末尾に空きを足して、最後までスクロールすれば末尾のタブがフェードの外に出るようにする
+   （flex のスクロール領域では padding-right が効かないブラウザがあるので疑似要素で足す） */
+.tabs::after { content: ''; flex: 0 0 26px; }
+.tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
 .tabs::-webkit-scrollbar { display: none; }
-.tabs .chip { height: 34px; padding: 0 12px; font: 500 12px var(--en); }
+.tabs .chip { flex-shrink: 0; height: 34px; padding: 0 12px; font: 500 12px var(--en); }
 .hit { display: flex; gap: 12px; align-items: center; background: #fff; border-radius: 18px; padding: 12px; }
 .hit__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .hit__title { font: 500 14px var(--jp); }
@@ -846,4 +853,15 @@ button:disabled { opacity: 0.6; cursor: wait; }
   font: 600 17px/1.4 var(--jp);
   color: var(--ink);
   margin: 2px 0 0;
+}
+
+/* 子の塊の途中では折り返さず、塊と塊の間でだけ折り返す */
+.nowrap-parts { display: inline-flex; flex-wrap: wrap; justify-content: center; }
+.nowrap-parts > span { white-space: nowrap; }
+
+/* 操作ヒントの出し分け。タッチ主体の端末ではスクロールの案内を出さない */
+.hint--touch { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  .hint--mouse { display: none; }
+  .hint--touch { display: inline; }
 }
