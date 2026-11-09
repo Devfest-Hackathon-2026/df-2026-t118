@@ -20,6 +20,8 @@ function render(): string {
       onSelectBuildingKind={noop}
       onSelectGrowthStage={noop}
       onLoadUseCasePreset={noop}
+      onDemoNight={noop}
+      onDemoMorning={noop}
       onResetAll={noop}
     />,
   );
@@ -37,7 +39,7 @@ describe('SettingsSheet の開発・デモ用セクション', () => {
     expect(html).toContain('開発・デモ用');
   });
 
-  it.each(['同期モード', '複数ユースケース検証', '建物ライブラリ'])(
+  it.each(['同期モード', '複数ユースケース検証', '建物ライブラリ', '夜にする（束ねる）', '朝にする（今日の一歩）'])(
     '「%s」は開発・デモ用セクションの中にだけある',
     (label) => {
       expect(html.indexOf(label)).toBeGreaterThan(devStart);

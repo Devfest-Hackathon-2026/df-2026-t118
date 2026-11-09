@@ -614,6 +614,11 @@ button:disabled { opacity: 0.6; cursor: wait; }
     padding: 0 12px;
     font-size: 12.5px;
   }
+  /* 島を押し出さないよう、スマホではナビを1段に収める。
+     ラベルはアイコンだけにし、名前は aria-label / title で補う。保存（濃いピル）だけは文字を残す */
+  .home__nav { flex-wrap: nowrap; }
+  .home__nav .navpill__label { display: none; }
+  .home__nav .navpill.glass { width: 38px; padding: 0; justify-content: center; }
   .display { font-size: 34px; }
   .display--xl { font-size: 44px; }
 

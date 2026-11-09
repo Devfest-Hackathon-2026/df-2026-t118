@@ -140,6 +140,8 @@ export function computeBubbleText(params: {
   activeBundle?: Bundle | null;
   pendingBundlesCount?: number;
   pendingQuestionCount?: number;
+  canPropose?: boolean;
+  canBundle?: boolean;
   phase: PhaseKind;
   aiBusyLabel?: string | null;
   savedReaction?: string | null;
@@ -166,11 +168,33 @@ export function computeBubbleText(params: {
   if ((params.pendingQuestionCount || 0) > 0) {
     return 'ちょっとだけ聞きたいことがあるんだ。こたえてくれる？';
   }
+  // ドックに［今日の一歩を見る］／［まとめる］を出すときの一言。ボタン名は文中に出さない
+  if (params.canPropose) return '束が育ってきたね。今日の一歩、考えてみようか？';
+  if (params.canBundle) return 'たくさん集めたね。似ているものをまとめてみる？';
   if (params.phase === 'night') return 'おやすみ。集めたものを、ProjectやAreaに合わせて束ねておくね。';
   if (hasUnknown && !confirmedFloating) return '「？」のカード、決まったら教えてね。';
-  if (confirmedFloating >= 2) return 'たくさん集めたね。「束ねる（夜）」でまとめられるよ。';
+  if (confirmedFloating >= 2) return 'たくさん集まってきたね。';
   if (confirmedFloating === 1) return '拾っておいたよ。もう1つ集まったら束ねよう。';
   return '気になったものを「＋ 保存する」から送ってね。ここに浮かべるよ。';
+}
+
+// ホームのドックに「まとめる」「今日の一歩」の入口を出すかを決める純粋ルール（#33）。
+// 常時ボタンにせず、実行して意味がある日だけ出す。判定は実行側（夜の整理・朝の提案）と同じルールを使う
+export function computeHomeActions(params: {
+  items: SavedItem[];
+  bundles: Bundle[];
+  projects: ProjectEntity[];
+  proposals: Proposal[];
+  proposalStatus: ProposalStatus;
+  todayLocal: string;
+}): { canBundle: boolean; canPropose: boolean } {
+  const canBundle = selectItemsForNightOrganize(params.items).length >= 2;
+  // 見送った・手放した日も含め、提案は1日1件まで（requirements.md S4）
+  const canPropose =
+    params.proposalStatus === 'none' &&
+    !params.proposals.some((p) => p.localDate === params.todayLocal) &&
+    selectTargetBundleForToday(params) !== null;
+  return { canBundle, canPropose };
 }
 
 // 保存した直後のキャラクターの一言（#44）。どう保存したかで言い方を変える

@@ -23,6 +23,8 @@ export const S2Home: React.FC<{
   somedayCount: number;
   inboxCount?: number;
   pendingQuestionCount?: number;
+  canPropose?: boolean;
+  canBundle?: boolean;
   hint: boolean;
   aiBusyLabel: string | null;
   savedReaction?: string | null;
@@ -47,6 +49,8 @@ export const S2Home: React.FC<{
   somedayCount,
   inboxCount = 0,
   pendingQuestionCount = 0,
+  canPropose = false,
+  canBundle = false,
   hint,
   aiBusyLabel,
   savedReaction = null,
@@ -62,6 +66,8 @@ export const S2Home: React.FC<{
   onOpenSettings,
 }) => {
   const [headEn, headTitle] = computeHeadline({ floatingItems, proposalStatus, phase });
+
+  const inboxLabel = `${NAMES[character]}のお便り${inboxCount > 0 ? ` (${inboxCount})` : ''}`;
 
   const dateLabel =
     `DAY ${day}` +
@@ -81,6 +87,11 @@ export const S2Home: React.FC<{
     // しつもんカードは連絡箱の中にあるが、そこまで辿り着かないと気づけない。
     // 「今日の一歩」と同じようにドックから1タップで答えに行けるようにする。
     primaryCta = { label: 'こたえる', onClick: onOpenInbox };
+  } else if (canPropose) {
+    // 1日1提案が本筋なので、束ねるより先に出す
+    primaryCta = { label: '今日の一歩を見る', onClick: onTriggerMorning };
+  } else if (canBundle) {
+    primaryCta = { label: 'まとめる', onClick: onTriggerNight };
   }
 
   const tag =
@@ -90,7 +101,11 @@ export const S2Home: React.FC<{
         ? 'CLUSTER PROPOSAL'
         : pendingQuestionCount > 0
           ? 'QUESTION'
-          : aiBusyLabel
+          : canPropose
+            ? 'ONE STEP'
+            : canBundle
+              ? 'BUNDLE'
+              : aiBusyLabel
             ? 'GEMINI AI'
             : null;
 
@@ -103,41 +118,26 @@ export const S2Home: React.FC<{
           <span className="home__sub">{headTitle}</span>
         </div>
 
+        {/* 常に出すのは 一覧・検索／お便り／設定／保存 だけ。束ねる・今日の一歩はドックから、
+            いつか箱は中身があるときだけ出す（requirements.md の「情報を出しすぎない」）。
+            デモで時間を進める入口は設定の「開発・デモ用」にある */}
         <nav className="home__nav" aria-label="アプリの操作">
-          <button
-            className="navpill glass"
-            onClick={onTriggerNight}
-            disabled={Boolean(aiBusyLabel)}
-            title="似ている保存物をまとめる"
-          >
-            <Icon name="waves" />
-            <span className="navpill__label">束ねる（夜）</span>
-          </button>
-
-          <button
-            className="navpill glass"
-            onClick={onTriggerMorning}
-            disabled={Boolean(aiBusyLabel)}
-            title="今日の小さな一歩を提案してもらう"
-          >
-            <Icon name="auto_awesome" />
-            <span className="navpill__label">今日の一歩（朝）</span>
-          </button>
-
-          <button
-            className="navpill glass"
-            onClick={onOpenSort}
-            title="いつか箱の中身を仕分ける"
-          >
-            <Icon name="inventory_2" />
-            <span className="navpill__label">
-              仕分け{somedayCount > 0 ? ` (${somedayCount})` : ''}
-            </span>
-          </button>
+          {somedayCount > 0 ? (
+            <button
+              className="navpill glass"
+              onClick={onOpenSort}
+              aria-label={`いつか箱 (${somedayCount})`}
+              title="いつか箱の中身を仕分ける"
+            >
+              <Icon name="inventory_2" />
+              <span className="navpill__label">いつか箱 ({somedayCount})</span>
+            </button>
+          ) : null}
 
           <button
             className="navpill glass"
             onClick={onOpenSearch}
+            aria-label="一覧・検索"
             title="保存したものを一覧・検索する"
           >
             <Icon name="search" />
@@ -148,12 +148,11 @@ export const S2Home: React.FC<{
             <button
               className="navpill glass"
               onClick={onOpenInbox}
+              aria-label={inboxLabel}
               title="届いたお便りを読む"
             >
               <Icon name="mail" />
-              <span className="navpill__label">
-                連絡箱{inboxCount > 0 ? ` (${inboxCount})` : ''}
-              </span>
+              <span className="navpill__label">{inboxLabel}</span>
             </button>
           ) : null}
 
@@ -187,6 +186,8 @@ export const S2Home: React.FC<{
             activeBundle,
             pendingBundlesCount,
             pendingQuestionCount,
+            canPropose,
+            canBundle,
             phase,
             aiBusyLabel,
             savedReaction,

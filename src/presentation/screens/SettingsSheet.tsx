@@ -43,6 +43,8 @@ export const SettingsSheet: React.FC<{
   onAddProject?: (name: string, goal: string) => void;
   onAddArea?: (name: string) => void;
   onLoadUseCasePreset?: (presetId: UseCasePersonaPreset['id']) => void;
+  onDemoNight?: () => void;
+  onDemoMorning?: () => void;
   discoverySettings?: DiscoverySettings;
   confirmedSubjects?: ConfirmedSubject[];
   curatedSources?: CuratedSource[];
@@ -71,6 +73,8 @@ export const SettingsSheet: React.FC<{
   onAddProject,
   onAddArea,
   onLoadUseCasePreset,
+  onDemoNight,
+  onDemoMorning,
   discoverySettings,
   confirmedSubjects,
   curatedSources,
@@ -292,6 +296,28 @@ export const SettingsSheet: React.FC<{
         <summary>
           <span className="eyebrow eyebrow--muted">DEV · 開発・デモ用</span>
         </summary>
+
+        {/* ホームでは束ねる・今日の一歩を条件つきでしか出さないので（#33）、
+            デモ撮影で時間を進めるための手動の入口をここに残す */}
+        {onDemoNight || onDemoMorning ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <span className="eyebrow eyebrow--accent">TIME · 時間を進める（デモ用）</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {onDemoNight ? (
+                <button className="btn btn--ghost btn--pill btn--sm" onClick={onDemoNight}>
+                  <Icon name="waves" />
+                  夜にする（束ねる）
+                </button>
+              ) : null}
+              {onDemoMorning ? (
+                <button className="btn btn--ghost btn--pill btn--sm" onClick={onDemoMorning}>
+                  <Icon name="auto_awesome" />
+                  朝にする（今日の一歩）
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
         <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
           同期モード:{' '}
           {firebaseConnected

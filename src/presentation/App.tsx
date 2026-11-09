@@ -5,6 +5,8 @@ import {
   buildFallbackBundle,
   buildFallbackProposal,
   computeBubbleText,
+  computeHomeActions,
+  computeLocalDateString,
 } from '../domain/rules/islandRules';
 import { IslandCanvas } from './canvas/IslandCanvas';
 import { Icon } from './common/UiParts';
@@ -156,6 +158,14 @@ export const App: React.FC = () => {
   const activeItem =
     items.find((i) => i.id === activeItemId) || floatingItems[0] || items[0] || null;
   const somedayItems = items.filter((i) => i.para === 'Someday');
+  const { canBundle, canPropose } = computeHomeActions({
+    items,
+    bundles,
+    projects,
+    proposals,
+    proposalStatus,
+    todayLocal: computeLocalDateString(profile.timezone),
+  });
   const hasBundleOnIsland =
     bundles.some((b) => b.para !== 'Archives') && buildingProgress == null;
 
@@ -209,6 +219,9 @@ export const App: React.FC = () => {
               proposalStatus,
               activeBundle,
               pendingBundlesCount: pendingBundles.length,
+              pendingQuestionCount,
+              canPropose,
+              canBundle,
               phase,
               aiBusyLabel,
               savedReaction,
@@ -244,6 +257,8 @@ export const App: React.FC = () => {
             somedayCount={somedayItems.length}
             inboxCount={inboxCount}
             pendingQuestionCount={pendingQuestionCount}
+            canPropose={canPropose}
+            canBundle={canBundle}
             hint={hint}
             aiBusyLabel={aiBusyLabel}
             savedReaction={savedReaction}
@@ -508,6 +523,8 @@ export const App: React.FC = () => {
                 onAddProject={handleAddProject}
                 onAddArea={handleAddArea}
                 onLoadUseCasePreset={handleLoadUseCasePreset}
+                onDemoNight={handleGoNight}
+                onDemoMorning={handleGoMorning}
                 discoverySettings={discoverySettings}
                 confirmedSubjects={confirmedSubjects}
                 curatedSources={curatedSources}

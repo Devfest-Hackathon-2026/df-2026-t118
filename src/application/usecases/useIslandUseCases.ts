@@ -183,6 +183,8 @@ export function useIslandUseCases() {
   const toastTimerRef = useRef<number | null>(null);
   const hydratedRef = useRef<boolean>(false);
   const autoGeneratingDateRef = useRef<string | null>(null);
+  // ホーム表示時の自動生成が応答待ちの間だけ true。手動の「今日の一歩」と二重に作らないために使う
+  const autoProposalInFlightRef = useRef<boolean>(false);
 
   const flash = (msg: string) => {
     if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
@@ -397,6 +399,7 @@ export function useIslandUseCases() {
     if (!candidateBundle) return;
 
     autoGeneratingDateRef.current = todayLocal;
+    autoProposalInFlightRef.current = true;
     const bundleItems = items.filter(
       (it) =>
         candidateBundle.itemIds.includes(it.id) ||
@@ -442,6 +445,9 @@ export function useIslandUseCases() {
       })
       .catch(() => {
         autoGeneratingDateRef.current = null;
+      })
+      .finally(() => {
+        autoProposalInFlightRef.current = false;
       });
   }, [screen, projects, items, bundles, proposals, profile.timezone, character]);
 
@@ -1196,6 +1202,11 @@ export function useIslandUseCases() {
         setActiveBundleId(existingToday.bundleId);
       }
       handleOpenProposal();
+      return;
+    }
+    // ホーム表示時の自動生成がまだ返ってきていない。ここで作ると同じ日に2件目ができてしまう
+    if (autoProposalInFlightRef.current) {
+      flash(`${NAMES[character]}がいま今日の一歩を考えているよ`);
       return;
     }
 
