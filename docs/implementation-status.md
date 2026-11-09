@@ -203,13 +203,28 @@ Vertex AI へ寄せると認証方式（API キー → サービスアカウン�
 [`firestoreDocuments.ts`](../functions/src/domain/firestoreDocuments.ts) の純粋関数に切り出し、`src/__tests__` から
 フロントの `Bundle` / `Proposal` 型への代入で固定した（型が増えたら検査で落ちる）。読み側でも doc id を補う。
 
+**バッチのループが 1 人で止まっていた。** [`scheduledBatchUseCases.ts`](../functions/src/application/scheduledBatchUseCases.ts) の
+ユーザーループに `try/catch` が無く、1 人の処理で例外が出ると**以降の全員が無処理**になっていた。
+ユーザー単位で握って `console.warn` に残し、次のユーザーへ進むようにした。
+
+**朝の提案で選ぶ束が、手押しと定時ジョブで食い違っていた。** フロント（[`islandRules.ts`](../src/domain/rules/islandRules.ts)
+の `selectTargetBundleForToday`）は「承認済み かつ まだ建っていない Projects 束 → Projects 束 →
+アイテムを持つ Areas 束」の順で選ぶ。バッチ側は `readyForProposal` で絞って Projects を先頭に寄せるだけで、
+承認状態も `buildingLevel` も見ていなかった。選択ルールを
+[`proposalSelection.ts`](../functions/src/domain/proposalSelection.ts) の純粋関数にしてフロントと同じ順序にそろえた。
+あわせて requirements.md F6 の「**アクティブな** Project / Area について」に合わせ、
+紐づけ先が archived になった束を対象から外す（フロントは Project 直紐づけの経路でしか status を見ていないので、
+ここはサーバーのほうが要件に忠実になる）。
+
+> 補足: 当初「サーバーだけが未承認の束で提案を出す」と書いたが、正確ではない。
+> フロントも承認済みが 1 つも無ければ未承認の Projects 束にフォールバックする。
+> 違っていたのは**優先順位を持っていなかったこと**。
+
 #### ⚠️ 残っているギャップ
 
 | # | 要件 | 実装 |
 |---|---|---|
 | a | [`requirements.md`](requirements.md) 「定時ジョブ（夜の整理、朝の提案、**振り返り、週 1 の仕分け**）」 | 定時は夜・朝の 2 つだけ。振り返りの催促と週 1 仕分けはクライアント操作のみ。`architecture.md` は 2 つしか書いていないので、ズレているのは requirements 側 |
-| b | バッチは全ユーザーを処理する | [`scheduledBatchUseCases.ts`](../functions/src/application/scheduledBatchUseCases.ts) のループに `try/catch` が無く、1 人で例外が出ると残り全員が処理されない |
-| c | F5「本人が 1 タップで承認」／提案対象はアクティブな Project | `getReadyBundleForUser` が `approvalStatus: 'pending'` を除外せず、Project の `status` も見ていない。フロントは [`islandRules.ts`](../src/domain/rules/islandRules.ts) で両方除外しているので、**サーバーだけが未承認の束で提案を出す** |
 | d | 「『まだ』が 2 回続いたら、もっと小さな一歩に分けるか、手放すかを聞く」 | `previousStatus` は直近 1 回ぶんのみ。連続カウンタも「手放すか聞く」分岐も無い |
 | e | 「通知を 2 回続けて無視されたら週 1 の仕分けに回す」 | 通知自体が未実装（2.7）。要件側を落とすのが素直 |
 | f | 「エージェント用の重いフレームワークは MVP では使わない」 | `genkit` / `@genkit-ai/googleai` が依存に残っている（実行経路外・4 章の後始末） |
@@ -257,7 +272,7 @@ AI 送信同意 OFF の除外、非機能「本人だけが見られる」。
 
 | # | やること | 優先 |
 |---|---|---|
-| 17 | 2.8 の残ギャップ a〜f。優先は **b（バッチのループが 1 人で止まる）→ c（未承認の束で提案を出す）** | P1 |
+| 17 | 2.8 の残ギャップ a・d・e・f（定時ジョブ 4 つのうち 2 つ、「まだ」2 回連続、通知 2 回無視、Genkit 依存）。いずれも要件側を MVP 実態に落とすか実装するかの判断が要る | P2 |
 | 14 | **本番の Firestore に実在のミュージシャン名が「好き」帳として残っている**。2026-11-09 の検証中、匿名ユーザーの `confirmedSubjects` に実在のアーティスト名と実在のアルバム名が入っているのを確認した。コードの初期値は架空名（`蒼井ことね`）なので、人手で入力されたもの。提出要件 6「テストアカウントやサンプルデータに実在の個人情報を使わない」に触れるので消す。同じ検証で増えた `researchReports` / `researchJobs` も一緒に消す | **P1** |
 | 15 | **モバイル Safari の WebGL で島が 60fps を保てるかの実測** — 実機（iPhone）と Mac の Web Inspector が要る。測り方は [`tech-selection.md`](tech-selection.md) の要確認に書いた | P2 |
 | 16 | Firestore ベクトル検索の**リージョン別料金**は公式に記載が見つからず未確定。ただし現状このプロジェクトはベクトルインデックスを使っていないため課金は発生しない | P3 |

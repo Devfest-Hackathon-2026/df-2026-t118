@@ -17,6 +17,10 @@ import {
   buildBundleDocument,
   buildProposalDocument,
 } from '../domain/firestoreDocuments.js';
+import {
+  selectBundleForMorningProposal,
+  type ProposalCandidateBundle,
+} from '../domain/proposalSelection.js';
 
 type SavedItemSummary = z.infer<typeof SavedItemSummarySchema>;
 
@@ -159,7 +163,10 @@ export async function hasProposalForLocalDate(
   return !snap.empty;
 }
 
-export async function getReadyBundleForUser(uid: string): Promise<{
+export async function getReadyBundleForUser(
+  uid: string,
+  activeTargetIds: string[] = []
+): Promise<{
   id: string;
   intent: string;
   points: string[];
@@ -175,19 +182,19 @@ export async function getReadyBundleForUser(uid: string): Promise<{
     .get();
   if (bundlesSnap.empty) return null;
 
-  // Archives を除外し、Projects を優先して選択
-  const candidates: Array<Record<string, unknown> & { id: string }> = bundlesSnap.docs
-    .map(
-      (d: QueryDocumentSnapshot): Record<string, unknown> & { id: string } => ({
-        ...(d.data() as Record<string, unknown>),
-        id: d.id,
-      })
-    )
-    .filter((b) => b.para !== 'Archives' && b.para !== 'Resources');
-  if (candidates.length === 0) return null;
+  // 選び方はフロント（islandRules.selectTargetBundleForToday）と同じ順序にそろえる。
+  // 手で押したときと朝 8 時のジョブで別の束が選ばれないようにするため。
+  const candidates = bundlesSnap.docs.map(
+    (d: QueryDocumentSnapshot): ProposalCandidateBundle & Record<string, unknown> => ({
+      ...(d.data() as Record<string, unknown>),
+      id: d.id,
+      para: String((d.data() as Record<string, unknown>).para || ''),
+    })
+  );
 
-  candidates.sort((a, b) => (a.para === 'Projects' ? -1 : b.para === 'Projects' ? 1 : 0));
-  const chosen = candidates[0];
+  const chosen = selectBundleForMorningProposal(candidates, activeTargetIds);
+  if (!chosen) return null;
+
   const itemIds = Array.isArray(chosen.itemIds) ? (chosen.itemIds as string[]) : [];
 
   const itemsSnap = await userRef.collection('items').where('intentConfirmed', '==', true).get();

@@ -27,52 +27,72 @@ function formatLocalDate(timezone = 'Asia/Tokyo', nowMs = Date.now()): string {
   return new Date(nowMs + 9 * 3600 * 1000).toISOString().slice(0, 10);
 }
 
+// 1 人の処理で投げられた例外を、残りのユーザーに波及させない。
+// ループの外で握ると、最初の 1 人がコケただけで以降の全員が無処理になる。
+function warnUserFailure(stage: string, uid: string, err: unknown): void {
+  const detail = err instanceof Error ? err.message : '不明なエラー';
+  console.warn(`[batch] ${stage} に失敗しました（uid: ${uid}）: ${detail}`);
+}
+
 export async function executeNightOrganizeBatch(apiKey?: string): Promise<void> {
   const uids = await listUserIds(100);
   for (const uid of uids) {
-    const ctx = await getUserBatchContext(uid);
-    // R02: AI送信同意がオフのユーザーは自動バッチ処理の対象外にする
-    if (!ctx.aiConsentGranted) continue;
+    try {
+      const ctx = await getUserBatchContext(uid);
+      // R02: AI送信同意がオフのユーザーは自動バッチ処理の対象外にする
+      if (!ctx.aiConsentGranted) continue;
 
-    const unbundled = await getUnbundledConfirmedItemsForUser(uid);
-    if (unbundled.length < 2) continue;
+      const unbundled = await getUnbundledConfirmedItemsForUser(uid);
+      if (unbundled.length < 2) continue;
 
-    const result = await runNightOrganize(
-      { items: unbundled, targets: ctx.targets },
-      apiKey
-    );
-    await saveNightBundlesForUser(uid, result.bundles);
+      const result = await runNightOrganize(
+        { items: unbundled, targets: ctx.targets },
+        apiKey
+      );
+      await saveNightBundlesForUser(uid, result.bundles);
+    } catch (err) {
+      warnUserFailure('夜の束ね', uid, err);
+    }
   }
 }
 
 export async function executeMorningProposeBatch(apiKey?: string): Promise<void> {
   const uids = await listUserIds(100);
   for (const uid of uids) {
-    const ctx = await getUserBatchContext(uid);
-    if (!ctx.aiConsentGranted) continue;
+    try {
+      const ctx = await getUserBatchContext(uid);
+      if (!ctx.aiConsentGranted) continue;
 
-    const localDate = formatLocalDate(ctx.timezone);
-    // F05: 現地日付で既に当日の提案がある場合は新規生成しない（1日1件の冪等性）
-    const alreadyHasToday = await hasProposalForLocalDate(uid, localDate);
-    if (alreadyHasToday) continue;
+      const localDate = formatLocalDate(ctx.timezone);
+      // F05: 現地日付で既に当日の提案がある場合は新規生成しない（1日1件の冪等性）
+      const alreadyHasToday = await hasProposalForLocalDate(uid, localDate);
+      if (alreadyHasToday) continue;
 
-    const bundle = await getReadyBundleForUser(uid);
-    if (!bundle) continue;
+      // F6: 提案の対象はアクティブな Project / Area に限る。
+      // ctx.targets は archived を除いた一覧なので、その ID を選択ルールへ渡す
+      const bundle = await getReadyBundleForUser(
+        uid,
+        ctx.targets.map((t) => t.id)
+      );
+      if (!bundle) continue;
 
-    const step = await runMorningPropose(
-      {
-        bundle: {
-          id: bundle.id,
-          intent: bundle.intent,
-          points: bundle.points,
-          tool: bundle.tool,
-          items: bundle.items,
+      const step = await runMorningPropose(
+        {
+          bundle: {
+            id: bundle.id,
+            intent: bundle.intent,
+            points: bundle.points,
+            tool: bundle.tool,
+            items: bundle.items,
+          },
+          previousStatus: ctx.previousStatus,
+          characterName: ctx.characterName,
         },
-        previousStatus: ctx.previousStatus,
-        characterName: ctx.characterName,
-      },
-      apiKey
-    );
-    await saveMorningProposalForUser(uid, bundle.id, localDate, ctx.timezone, step);
+        apiKey
+      );
+      await saveMorningProposalForUser(uid, bundle.id, localDate, ctx.timezone, step);
+    } catch (err) {
+      warnUserFailure('朝の提案', uid, err);
+    }
   }
 }
