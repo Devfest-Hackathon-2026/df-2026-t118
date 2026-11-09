@@ -23,6 +23,12 @@ import {
 import { callGeminiJson, computeEmbedding } from '../infrastructure/geminiClient.js';
 import { fetchUrlMetadata } from '../infrastructure/urlMetadataFetcher.js';
 
+// 夜の整理で 1 リクエストあたり実際に AI を回す保存物の上限（イシュー #38）。
+// aiQuotaUseCases.ts の NIGHT_ORGANIZE_COST_CAP と同じ値にして、課金の重みと実処理量をそろえる。
+export const NIGHT_ORGANIZE_ITEM_CAP = 40;
+// 埋め込みを一度に投げる本数。Gemini のレート上限に当たりにくくする
+export const EMBEDDING_CONCURRENCY = 4;
+
 // ユースケース案「9.3 Resources：関心のあるテーマ・参考資料ごとに分ける」に基づくテーマ推定（全6分野・48ユースケース対応）
 // 複数キーワードが含まれる場合（例：「カフェの内装をUIデザインの参考にする」）でも最も強い文脈を選べるようスコア順で判定する
 const RESOURCE_TOPIC_RULES: Array<{ topic: string; pattern: RegExp; weight: number }> = [
@@ -677,20 +683,30 @@ export async function runNightOrganize(
   input: NightOrganizeInput,
   apiKey?: string
 ): Promise<NightOrganizeOutput> {
-  const items = input.items;
+  // 1 リクエストで実際に AI を回す件数の上限（イシュー #38）。
+  // スキーマ側の上限（NIGHT_ORGANIZE_ITEM_LIMIT = 200）は「弾く線」で、こちらは「回す線」。
+  // ここを超えた分は束ねられないが、次の夜の整理で順に拾われる。
+  const items = input.items.slice(0, NIGHT_ORGANIZE_ITEM_CAP);
   if (items.length < 2) {
     return { bundles: [] };
   }
 
-  const withEmb = await Promise.all(
-    items.map(async (it) => ({
-      ...it,
-      embedding:
-        it.embedding && it.embedding.length > 0
-          ? it.embedding
-          : await computeEmbedding(`${it.intent} / ${it.intent} / ${it.title}`, apiKey),
-    }))
-  );
+  // 埋め込みは件数ぶん Gemini を呼ぶ。無制限の Promise.all だと 1 リクエストで数百並列になり、
+  // 課金も Gemini のレート上限も一気に食う。少しずつ流す。
+  const withEmb: Array<NightOrganizeInput['items'][number] & { embedding: number[] }> = [];
+  for (let i = 0; i < items.length; i += EMBEDDING_CONCURRENCY) {
+    const chunk = items.slice(i, i + EMBEDDING_CONCURRENCY);
+    const resolved = await Promise.all(
+      chunk.map(async (it) => ({
+        ...it,
+        embedding:
+          it.embedding && it.embedding.length > 0
+            ? it.embedding
+            : await computeEmbedding(`${it.intent} / ${it.intent} / ${it.title}`, apiKey),
+      }))
+    );
+    withEmb.push(...resolved);
+  }
 
   const clusters = clusterItemsBySimilarity(withEmb, 0.58);
   const targets = input.targets || [];

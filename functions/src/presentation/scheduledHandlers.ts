@@ -5,12 +5,21 @@ import {
 } from '../application/scheduledBatchUseCases.js';
 import { geminiApiKey } from './callableHandlers.js';
 
+// 定時バッチはユーザー数ぶん逐次で回るため、既定の 60 秒では途中で切られる。
+// 同時に 2 本走ると同じユーザーを二重に処理するので maxInstances は 1 に固定する。
+const SCHEDULED_BATCH_OPTIONS = {
+  timeZone: 'Asia/Tokyo' as const,
+  region: 'asia-northeast1' as const,
+  secrets: [geminiApiKey],
+  maxInstances: 1,
+  timeoutSeconds: 540,
+  memory: '512MiB' as const,
+};
+
 export const scheduledNightOrganize = onSchedule(
   {
+    ...SCHEDULED_BATCH_OPTIONS,
     schedule: 'every day 23:00',
-    timeZone: 'Asia/Tokyo',
-    region: 'asia-northeast1',
-    secrets: [geminiApiKey],
   },
   async () => {
     const key = geminiApiKey.value() || process.env.GEMINI_API_KEY;
@@ -20,10 +29,8 @@ export const scheduledNightOrganize = onSchedule(
 
 export const scheduledMorningPropose = onSchedule(
   {
+    ...SCHEDULED_BATCH_OPTIONS,
     schedule: 'every day 08:00',
-    timeZone: 'Asia/Tokyo',
-    region: 'asia-northeast1',
-    secrets: [geminiApiKey],
   },
   async () => {
     const key = geminiApiKey.value() || process.env.GEMINI_API_KEY;

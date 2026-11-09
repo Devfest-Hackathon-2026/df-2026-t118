@@ -31,6 +31,9 @@
 | 能動発見の結果の保存 | ✅ 実装済み | `researchJobs` / `researchReports` / `notificationOutbox` にサーバーが書く（2.7） |
 | Callable の認証 | ✅ 実装済み | 5 関数すべて `request.auth` 必須。`/api/*` も ID トークンを付けて呼ぶ（2.7） |
 | Web Push 通知 | ❌ 未実装 | 「連絡箱」で代替。`notificationOutbox` は送信キューだが送信者はいない（2.7） |
+| **AI 課金ガード（不特定多数対策）** | ✅ 実装済み | 入力上限・日次クォータ・キルスイッチ・ランタイムの天井（2.9） |
+| App Check | ⚠️ 未適用 | クライアントの登録と計測のみ。サーバーは検証していない。適用は提出後（2.9） |
+| UI の「月予算上限 \$3」 | ❌ 表示だけ | 金額はサーバーで積算していない。実際のガードは回数（2.9）。**文言の修正が必要** |
 
 ---
 
@@ -255,6 +258,56 @@ Someday 束が `readyForProposal: false` で提案対象から外れること、
 （クライアントも `localDate` を書くのでサーバーの `hasProposalForLocalDate` と噛み合う）、
 AI 送信同意 OFF の除外、非機能「本人だけが見られる」。
 
+### 2.9 ✅ 不特定多数に叩かれたときの AI 課金ガードを入れた（2026-11-09）
+
+大規模ハッカソンで公開する前提で、[イシュー #38](https://github.com/Kambara-Michiru/hannari-hustlers/issues/38) として検討した。
+決定の経緯と候補比較は [`decisions/005-ai-cost-guard.md`](decisions/005-ai-cost-guard.md)。
+
+着手前の状態（コードで確認）:
+
+- 2.7 で入れた callable の認証（`requireUid`）は**課金ガードとして機能していなかった**。匿名 uid はタダで無限に作れる
+- `NightOrganizeInputSchema.items` に件数の上限がなく、埋め込みが `Promise.all` で**無制限に並列**になっていた。
+  1 リクエストで数千回の Gemini 呼び出しを起こせた
+- `imageDataUrl` / `rawText` も無制限（callable の 10MB まで積めた）
+- レート制限が per-uid も per-IP も無く、実質「無料の Gemini プロキシ」だった
+- `onCall` / `onSchedule` に `maxInstances` などの指定が 1 つも無かった
+
+入れたもの:
+
+| 層 | 内容 |
+|---|---|
+| ランタイム | callable 5 本に `maxInstances: 10` / `timeoutSeconds: 60` / `memory: '512MiB'`、定時バッチ 2 本に `maxInstances: 1` / `timeoutSeconds: 540` |
+| 入力 | `schemas.ts` に `.max()`。保存物 200 件・画像 3,000,000 文字・本文 50,000 文字・ターゲット 50 件など |
+| 実処理量 | `runNightOrganize` は先頭 40 件だけ AI に回し、埋め込みは 4 件ずつ流す |
+| 日次クォータ | `aiQuotaUseCases.ts`。**per-uid 300 / 日、全体 20,000 / 日**（既定値）。カウンタは `users/{uid}/aiUsage/{日付}` と `aiUsageDaily/{日付}` |
+| キルスイッチ | `config/aiGuard` に `{ disabled: true }` を書くと全ユーザーの AI が止まる。`userDailyLimit` / `globalDailyLimit` の上書きもここ |
+| App Check | サイトキーがある環境でだけクライアントが初期化する。**サーバーは検証していない（未適用）** |
+
+設計の方針は 2 つとも提出要件 4（デプロイ URL を 11/14 まで稼働）から来ている。
+
+1. **止めるのではなく劣化させる。** 上限超過は `resource-exhausted` で弾くが、クライアントは
+   `/api` → `httpsCallable` → ローカルエンジンの順に落ちるため画面は止まらない。AI の文面がテンプレートに替わるだけ
+2. **フェイルオープン。** カウンタの読み書きが失敗したら通す。ガードの故障で本番の AI が全滅するほうが損が大きい
+
+`firestore.rules` で `aiUsage` をクライアントから書けないようにしてある（書けると自分の上限をリセットできる）。
+`config` / `aiUsageDaily` はルート直下で `match` が無いため、クライアントからは既定で拒否される。
+
+**残っているリスク（正直に記録する）:**
+
+- **定時バッチはクォータを通っていない。** 夜 23:00 / 朝 8:00 のバッチは callable を経由せず
+  `runNightOrganize` / `runMorningPropose` を直接呼ぶため、カウンタを進めも読みもしない。
+  つまり「全体 20,000 / 日」にバッチぶんは含まれない。バッチ自体は `listUserIds(100)` と
+  件数上限で量が決まっているので放置しているが、ユーザーが増えたら数えるべき
+- **匿名 uid の量産には無力。** 1,000 個作れば 300,000 回ぶんの天井になる。塞ぐのは App Check の適用（提出後）
+- **全体の天井に当たると全員が劣化する。** 自分のデモを人質に取られうるが、請求が無限に伸びるほうを避けた
+- **UI の「月予算上限 \$3」は表示だけで、いまも強制されていない。** 判定に使う `estimatedUsedUsd` は
+  クライアント側の定数 `0.04`（[`proactiveDiscoveryRules.ts`](../src/domain/rules/proactiveDiscoveryRules.ts)）で、
+  サーバーは金額を積算していない。実際のガードは上記の**回数**。
+  [`island-growth-story.md`](island-growth-story.md) の「設定した上限に達すると自動で外への検索をストップする安心設計」は
+  実装と合っていないため、**提出前に文言の修正が必要**（3 章の 21 に積んだ）
+- **Gemini の RPM / TPM / RPD の実値は未確認。** 公式ドキュメント以外の数字は食い違っており、
+  「何人同時で 429 になるか」は Google AI Studio のクォータ画面で見るしかない（3 章の 22）
+
 ---
 
 ## 3. するべきこと
@@ -284,11 +337,18 @@ AI 送信同意 OFF の除外、非機能「本人だけが見られる」。
 | 12 | callable 5 関数を認証必須にし、`/api/*` に ID トークンを付ける（2.7） | [#29](https://github.com/Kambara-Michiru/hannari-hustlers/pull/29) |
 | 13 | `getDb()` が既定アプリ不在で `app/no-app` に落ちる不具合を修正（2.7） | [#29](https://github.com/Kambara-Michiru/hannari-hustlers/pull/29) |
 | 18 | **本番 Firestore から実在のミュージシャン名を削除**（`users/{uid}/confirmedSubjects/subj_ichiko_aoba`）。提出要件 6 対応 | — |
+| 19 | **不特定多数に叩かれたときの AI 課金ガード**（入力上限・日次クォータ・キルスイッチ・ランタイムの天井・App Check を未適用で登録）（2.9） | [#39](https://github.com/Kambara-Michiru/hannari-hustlers/pull/39) |
 
 ### 残っていること
 
 | # | やること | 優先 |
 |---|---|---|
+| 21 | **[`island-growth-story.md`](island-growth-story.md) の「月の検索コスト上限」の文言を実装に合わせる。** 「上限に達すると自動でストップする」は強制されていない（2.9） | **P1（提出物の誠実性）** |
+| 22 | **Google AI Studio で Gemini の RPM / TPM / RPD の実値を確認する。** 「何人同時で 429 になるか」が分からないと、当日の劣化の見積もりが立たない（2.9） | **P1** |
+| 23 | Cloud Billing の予算アラートを設定する（50 / 90 / 100%）。通知は事後で止めてはくれない前提（[ADR-005](decisions/005-ai-cost-guard.md) の人間の作業） | P2 |
+| 24 | App Check を**適用**に切り替える（提出後）。匿名 uid の量産を塞ぐのはこれだけ（2.9） | P2（提出後） |
+| 25 | 定時バッチの `listUserIds(100)` をページングする。ユーザーが 100 人を超えると 101 人目以降が永久に未処理になる | P2 |
+| 26 | `syncToFirestore` が全 items / bundles / proposals を毎回書き直している（デバウンスも差分検出もない）。人数が増えると Firestore の書き込みが無駄に伸びる | P3 |
 | 17 | 2.8 の残ギャップ a・d・e・f（定時ジョブ 4 つのうち 2 つ、「まだ」2 回連続、通知 2 回無視、Genkit 依存）。いずれも要件側を MVP 実態に落とすか実装するかの判断が要る | P2 |
 | 15 | **モバイル Safari の WebGL で島が 60fps を保てるかの実測** — 実機（iPhone）と Mac の Web Inspector が要る。測り方は [`tech-selection.md`](tech-selection.md) の要確認に書いた | P2 |
 | 16 | Firestore ベクトル検索の**リージョン別料金**は公式に記載が見つからず未確定。ただし現状このプロジェクトはベクトルインデックスを使っていないため課金は発生しない | P3 |

@@ -29,7 +29,7 @@ flowchart TB
 
     subgraph BE["バックエンド（functions/src/ · 4層レイヤードアーキテクチャ）"]
         BE_PRES["presentation/<br>callableHandlers.ts · scheduledHandlers.ts"]
-        BE_APP["application/<br>aiUseCases.ts · scheduledBatchUseCases.ts<br>proactiveDiscoveryUseCases.ts · discoveryPersistenceUseCases.ts"]
+        BE_APP["application/<br>aiUseCases.ts · scheduledBatchUseCases.ts<br>proactiveDiscoveryUseCases.ts · discoveryPersistenceUseCases.ts<br>aiQuotaUseCases.ts"]
         BE_INFRA["infrastructure/<br>geminiClient.ts · urlMetadataFetcher.ts · firestoreAdminRepository.ts · discoverySearchAdapter.ts"]
         BE_DOM["domain/<br>schemas.ts (Zod) · clustering.ts (Cosine Similarity)<br>proactiveDiscoveryEngine.ts · proactiveDiscoverySchemas.ts"]
     end
@@ -133,7 +133,8 @@ hannari-hustlers/
         │   ├── aiUseCases.ts         # F2/F3 解析・意図確定 Embedding・F5 夜の束ね・F6 朝の提案ユースケース
         │   ├── scheduledBatchUseCases.ts # 全ユーザーの夜整理・朝提案バッチ処理ユースケース
         │   ├── proactiveDiscoveryUseCases.ts # 能動発見サイクル（同意確認 → 検索 → 公式照合 → カード/質問生成）
-        │   └── discoveryPersistenceUseCases.ts # 能動発見の結果を Firestore に残す層（冪等・同意再確認・通知キュー）
+        │   ├── discoveryPersistenceUseCases.ts # 能動発見の結果を Firestore に残す層（冪等・同意再確認・通知キュー）
+        │   └── aiQuotaUseCases.ts         # AI 呼び出しの日次クォータとキルスイッチ（不特定多数の課金対策 / ADR-005）
         ├── infrastructure/           # 【Infrastructure 層】外部通信・LLM・Firestore Admin アダプタ
         │   ├── urlMetadataFetcher.ts # SSRF 対策付き URL 取得 & <untrusted_content> 隔離
         │   ├── geminiClient.ts       # Gemini REST 呼び出し（JSON 生成・埋め込み）・モデルフォールバック・タイムアウト
@@ -225,6 +226,17 @@ hannari-hustlers/
 Hosting リライト経由の `/api/*` も [`aiFlowClient.ts`](../src/infrastructure/ai/aiFlowClient.ts) が
 `Authorization: Bearer <IDトークン>` を付けて呼ぶため、`onCall` が本人の uid を解決できる。
 `runDiscoveryCycle` の `uid` はクライアント申告ではなく検証済みトークンの uid を使う。
+
+**課金ガード**: 匿名 uid はタダで無限に作れるため、認証だけでは Gemini の課金を縛れない。
+[`aiQuotaUseCases.ts`](../functions/src/application/aiQuotaUseCases.ts) が入力検証のあとに
+per-uid（既定 300 / 日）と全体（既定 20,000 / 日）の日次カウンタを進め、超過した呼び出しは
+`resource-exhausted` で弾く。カウンタは `users/{uid}/aiUsage/{日付}` と `aiUsageDaily/{日付}`、
+キルスイッチと上限の上書きは `config/aiGuard`（いずれもクライアントからは書けない）。
+弾かれたクライアントはローカルエンジンにフォールバックするため画面は止まらない。
+カウンタの読み書きに失敗したときは通す（フェイルオープン）。判断の経緯は
+[ADR-005](decisions/005-ai-cost-guard.md)、実測状況は
+[`implementation-status.md`](implementation-status.md) 2.9。
+あわせて入力スキーマに件数・文字数の上限を置き、`onCall` / `onSchedule` に `maxInstances` を明示している。
 
 **能動発見の保存**: `runDiscoveryCycle` は結果を返すだけでなく、
 [`discoveryPersistenceUseCases.ts`](../functions/src/application/discoveryPersistenceUseCases.ts) が

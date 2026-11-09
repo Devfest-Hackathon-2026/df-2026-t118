@@ -1,5 +1,5 @@
 import { initializeApp, getApp } from 'firebase-admin/app';
-import { getFirestore, type QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore, type QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import type {
   BundleDraft,
   MorningProposeOutput,
@@ -13,6 +13,10 @@ import type {
   ResearchReport,
 } from '../domain/proactiveDiscoverySchemas.js';
 import type { DiscoveryStore } from '../application/discoveryPersistenceUseCases.js';
+import type {
+  AiQuotaGuardConfig,
+  AiQuotaStore,
+} from '../application/aiQuotaUseCases.js';
 import {
   buildBundleDocument,
   buildProposalDocument,
@@ -340,6 +344,78 @@ export function createFirestoreDiscoveryStore(): DiscoveryStore {
         .doc(uid)
         .collection('notificationOutbox')
         .add(stripUndefined(notification));
+    },
+  };
+}
+
+// ---------- AI クォータ（イシュー #38） ----------
+
+// 設定と全体カウンタの読み取りをインスタンス内で使い回す時間。
+// 関数インスタンスは再利用されるので、AI 呼び出しごとに Firestore を読まずに済む。
+// この分だけ全体の天井が甘くなるが、粗い天井なので実害はない。
+const QUOTA_CACHE_MS = 30000;
+
+let guardConfigCache: { at: number; value: AiQuotaGuardConfig | null } | null = null;
+let globalDailyCache: { at: number; localDate: string; value: number } | null = null;
+
+function readCalls(data: Record<string, unknown> | undefined): number {
+  const raw = Number(data?.calls ?? 0);
+  return Number.isFinite(raw) && raw > 0 ? raw : 0;
+}
+
+// クライアントから触れない場所にカウンタとキルスイッチを置く。
+// config / aiUsageDaily はルート直下のコレクションで、firestore.rules は /users/{uid} しか
+// match していないため既定で拒否される。aiUsage は users 配下なので rules 側で明示的に塞ぐ。
+export function createFirestoreAiQuotaStore(): AiQuotaStore {
+  return {
+    async getGuardConfig() {
+      const now = Date.now();
+      if (guardConfigCache && now - guardConfigCache.at < QUOTA_CACHE_MS) {
+        return guardConfigCache.value;
+      }
+      const snap = await getDb().collection('config').doc('aiGuard').get();
+      const value = snap.exists ? ((snap.data() || {}) as AiQuotaGuardConfig) : null;
+      guardConfigCache = { at: now, value };
+      return value;
+    },
+
+    async consumeUserDaily(uid, localDate, cost) {
+      const db = getDb();
+      const ref = db.collection('users').doc(uid).collection('aiUsage').doc(localDate);
+      // per-uid は同時実行がほぼ無いので、読んで足して書くところまで厳密にやる
+      return db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        const next = readCalls(snap.exists ? snap.data() : undefined) + cost;
+        tx.set(ref, { calls: next, localDate, updatedAt: Date.now() }, { merge: true });
+        return next;
+      });
+    },
+
+    async getGlobalDaily(localDate) {
+      const now = Date.now();
+      if (
+        globalDailyCache &&
+        globalDailyCache.localDate === localDate &&
+        now - globalDailyCache.at < QUOTA_CACHE_MS
+      ) {
+        return globalDailyCache.value;
+      }
+      const snap = await getDb().collection('aiUsageDaily').doc(localDate).get();
+      const value = readCalls(snap.exists ? snap.data() : undefined);
+      globalDailyCache = { at: now, localDate, value };
+      return value;
+    },
+
+    async addGlobalDaily(localDate, cost) {
+      // 単一ドキュメントへの書き込みなのでトランザクションにしない（1 doc あたりの書き込み制約に当たる）
+      await getDb()
+        .collection('aiUsageDaily')
+        .doc(localDate)
+        .set({ calls: FieldValue.increment(cost), updatedAt: Date.now() }, { merge: true });
+      // 同じインスタンスが続けて処理する分は、読み直さずに自分の消費を反映させる
+      if (globalDailyCache && globalDailyCache.localDate === localDate) {
+        globalDailyCache.value += cost;
+      }
     },
   };
 }
