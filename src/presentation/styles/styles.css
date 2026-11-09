@@ -593,6 +593,9 @@ button:disabled { opacity: 0.6; cursor: wait; }
   .home__dock-cta {
     flex: none;
   }
+  .home__dock-actions {
+    flex: none;
+  }
 }
 
 /* スマホ版（767px以下）: 下からせり上がるボトムシート */
@@ -971,3 +974,7 @@ button:disabled { opacity: 0.6; cursor: wait; }
 .dev-section > summary::after { content: '＋'; color: var(--muted); font: 500 14px var(--jp); }
 .dev-section[open] > summary::after { content: '−'; }
 .dev-section:not([open]) { gap: 0; }
+
+/* #45: 実行中のドック。［まだ］［できた］を並べ、「ほかの答え」は控えめにする */
+.home__dock-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.home__dock-more { font-size: 12px; margin-right: auto; }

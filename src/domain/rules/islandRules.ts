@@ -144,6 +144,8 @@ export function computeBubbleText(params: {
   canBundle?: boolean;
   phase: PhaseKind;
   aiBusyLabel?: string | null;
+  // 提案の所要時間。S4 の「目安◯分」と吹き出しの数字をそろえるために渡す（#45）
+  proposalMinutes?: number | null;
   savedReaction?: string | null;
 }): string {
   if (params.aiBusyLabel) return params.aiBusyLabel;
@@ -156,7 +158,10 @@ export function computeBubbleText(params: {
     const label = params.activeBundle?.tool || params.activeBundle?.targetName || '新しい';
     return `建ったね。${label}の建物。`;
   }
-  if (params.proposalStatus === 'doing') return 'いってらっしゃい。15分だけでいいよ。';
+  if (params.proposalStatus === 'doing') {
+    const m = params.proposalMinutes;
+    return m ? `いってらっしゃい。${m}分だけでいいよ。` : 'いってらっしゃい。少しだけでいいよ。';
+  }
   if (params.proposalStatus === 'ready') return 'おはよう。今日の一歩、見てみる？';
   if (params.proposalStatus === 'skipped') return 'うん、また明日ね。今日はゆっくりしよう。';
   if (params.proposalStatus === 'released') return '手放したよ。海にそっと流しておくね。';
@@ -176,6 +181,12 @@ export function computeBubbleText(params: {
   if (confirmedFloating >= 2) return 'たくさん集まってきたね。';
   if (confirmedFloating === 1) return '拾っておいたよ。もう1つ集まったら束ねよう。';
   return '気になったものを「＋ 保存する」から送ってね。ここに浮かべるよ。';
+}
+
+// 提案の一歩のタイトルから「たとえば：」の前置きを外す（#45）。
+// 前置きはサーバーの提案生成（functions/src/application/aiUseCases.ts）が付けている
+export function stripExampleLead(title: string): string {
+  return title.replace(/^\s*たとえば\s*[：:]\s*/, '');
 }
 
 // ホームのドックに「まとめる」「今日の一歩」の入口を出すかを決める純粋ルール（#33）。

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import type { CharacterKind, Proposal } from '../../domain/models/islandModels';
+import { stripExampleLead } from '../../domain/rules/islandRules';
 import { Avatar, Icon } from '../common/UiParts';
 
 const REFLECT_OPTS: Array<['done' | 'mada' | 'enough', string, string]> = [
   ['done', 'できた', 'sentiment_satisfied'],
   ['mada', 'まだ', 'hourglass_empty'],
-  ['enough', 'もういい', 'waves'],
+  // 「もういい」は手放す意味なので、波ではなく閉じるアイコンにする（収録済みのアイコンから選ぶ）
+  ['enough', 'もういい', 'close'],
 ];
 
 const WORDS = ['思ったより簡単', '楽しかった', 'ちょっと大変'];
@@ -17,8 +19,20 @@ export const S6ReflectSheet: React.FC<{
   onFinishDone: (word: string | null, photoDataUrl: string | null) => void;
   onFinishMada: () => void;
   onFinishRelease: () => void;
-}> = ({ character, proposal, onUploadImage, onFinishDone, onFinishMada, onFinishRelease }) => {
-  const [pick, setPick] = useState<'done' | 'mada' | 'enough' | null>(null);
+  // 建物が建ったあとに、ひとこと・写真だけを残すときは true（#45）
+  afterDone?: boolean;
+  onSaveReflection?: (word: string | null, photoDataUrl: string | null) => void;
+}> = ({
+  character,
+  proposal,
+  onUploadImage,
+  onFinishDone,
+  onFinishMada,
+  onFinishRelease,
+  afterDone = false,
+  onSaveReflection,
+}) => {
+  const [pick, setPick] = useState<'done' | 'mada' | 'enough' | null>(afterDone ? 'done' : null);
   const [word, setWord] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
@@ -45,11 +59,13 @@ export const S6ReflectSheet: React.FC<{
         <div className="prop__who">
           <span className="display display--sm">Done?</span>
           <span className="prop__from">
-            できた？ · {proposal?.title || '今日の一歩'}
+            {afterDone ? 'ひとこと' : 'できた？'} ·{' '}
+            {proposal?.title ? stripExampleLead(proposal.title) : '今日の一歩'}
           </span>
         </div>
       </div>
 
+      {afterDone ? null : (
       <div className="row3">
         {REFLECT_OPTS.map(([k, label, ic]) => (
           <button
@@ -62,6 +78,7 @@ export const S6ReflectSheet: React.FC<{
           </button>
         ))}
       </div>
+      )}
 
       {pick === 'done' ? (
         <div className="reflect__more">
@@ -99,12 +116,21 @@ export const S6ReflectSheet: React.FC<{
             )}
           </label>
 
-          <button
-            className="btn btn--ink btn--pill btn--lg"
-            onClick={() => onFinishDone(word, photoUrl)}
-          >
-            島にもどる（建物を建てる）
-          </button>
+          {afterDone && onSaveReflection ? (
+            <button
+              className="btn btn--ink btn--pill btn--lg"
+              onClick={() => onSaveReflection(word, photoUrl)}
+            >
+              残す
+            </button>
+          ) : (
+            <button
+              className="btn btn--ink btn--pill btn--lg"
+              onClick={() => onFinishDone(word, photoUrl)}
+            >
+              島にもどる（建物を建てる）
+            </button>
+          )}
         </div>
       ) : null}
     </>

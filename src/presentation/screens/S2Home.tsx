@@ -32,6 +32,9 @@ export const S2Home: React.FC<{
   onOpenSave: () => void;
   onOpenProposal: () => void;
   onOpenReflect: () => void;
+  onDone?: () => void;
+  onMada?: () => void;
+  onOpenReflection?: () => void;
   onOpenPendingBundle?: () => void;
   onTriggerNight: () => void;
   onTriggerMorning: () => void;
@@ -44,6 +47,7 @@ export const S2Home: React.FC<{
   day,
   floatingItems,
   proposalStatus,
+  activeProposal,
   activeBundle,
   pendingBundlesCount = 0,
   somedayCount,
@@ -58,6 +62,9 @@ export const S2Home: React.FC<{
   onOpenSave,
   onOpenProposal,
   onOpenReflect,
+  onDone,
+  onMada,
+  onOpenReflection,
   onOpenPendingBundle,
   onTriggerNight,
   onTriggerMorning,
@@ -73,11 +80,22 @@ export const S2Home: React.FC<{
     `DAY ${day}` +
     (phase === 'night' ? ' · NIGHT' : phase === 'morning' ? ' · MORNING' : ' · YOUR ISLAND');
 
+  // #45: 実行中は吹き出しの横に［まだ］［できた］を直接出し、［できた］で建物まで進める
+  const doingActions = proposalStatus === 'doing' && onDone && onMada;
+  const canLeaveReflection =
+    proposalStatus === 'done' &&
+    Boolean(activeProposal) &&
+    !activeProposal?.reflectWord &&
+    !activeProposal?.reflectPhotoDataUrl &&
+    Boolean(onOpenReflection);
+
   let primaryCta: { label: string; onClick: () => void } | null = null;
   if (proposalStatus === 'ready') {
     primaryCta = { label: '見てみる', onClick: onOpenProposal };
-  } else if (proposalStatus === 'doing') {
+  } else if (proposalStatus === 'doing' && !doingActions) {
     primaryCta = { label: 'できた？', onClick: onOpenReflect };
+  } else if (canLeaveReflection && onOpenReflection) {
+    primaryCta = { label: 'ひとこと残す', onClick: onOpenReflection };
   } else if (pendingBundlesCount > 0 && onOpenPendingBundle) {
     primaryCta = {
       label: `束ね案を確認 (${pendingBundlesCount})`,
@@ -190,11 +208,33 @@ export const S2Home: React.FC<{
             canBundle,
             phase,
             aiBusyLabel,
+            proposalMinutes: activeProposal?.minutes,
             savedReaction,
           })}
           tag={tag}
         />
-        {primaryCta ? (
+        {doingActions ? (
+          <div className="home__dock-actions">
+            <button className="linkish home__dock-more" onClick={onOpenReflect}>
+              ほかの答え
+            </button>
+            <button
+              className="btn btn--ghost btn--pill btn--lg"
+              onClick={onMada}
+              disabled={Boolean(aiBusyLabel)}
+            >
+              まだ
+            </button>
+            <button
+              className="btn btn--ink btn--pill btn--lg"
+              onClick={onDone}
+              disabled={Boolean(aiBusyLabel)}
+            >
+              <span>できた</span>
+              <Icon name="check" />
+            </button>
+          </div>
+        ) : primaryCta ? (
           <button
             className="btn btn--ink btn--pill btn--lg home__dock-cta"
             onClick={primaryCta.onClick}

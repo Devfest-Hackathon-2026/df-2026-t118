@@ -1368,7 +1368,7 @@ export function useIslandUseCases() {
           prev.map((p) => (p.id === activeProposalId ? { ...p, status: 'doing' } : p))
         );
       }
-      flash('いってらっしゃい！終わったら「できた？」から教えてね');
+      // 「いってらっしゃい」は吹き出しが言うので、トーストは重ねない（#45）
     });
   };
 
@@ -1474,6 +1474,22 @@ export function useIslandUseCases() {
     setSheet(null);
     setShown(false);
     setNonce((n) => n + 1);
+  };
+
+  // 建物が建ったあとに、ひとこと・写真だけを残す（#45）。建物は増やさない
+  const handleSaveReflection = (word: string | null, photoDataUrl: string | null) => {
+    closeSheet(() => {
+      if (activeProposalId) {
+        setProposals((prev) =>
+          prev.map((p) =>
+            p.id === activeProposalId
+              ? { ...p, reflectWord: word, reflectPhotoDataUrl: photoDataUrl }
+              : p
+          )
+        );
+      }
+      if (word || photoDataUrl) flash('ひとこと、残しておいたよ');
+    });
   };
 
   const handleReflectMada = () => {
@@ -2121,6 +2137,7 @@ export function useIslandUseCases() {
     handleReleaseActive,
     handleBuildSuccess,
     handleReflectMada,
+    handleSaveReflection,
     handleOpenSort,
     handleDecideSomedayItem,
     handleUpdateItemIntent,

@@ -111,6 +111,7 @@ export const App: React.FC = () => {
     handleReleaseActive,
     handleBuildSuccess,
     handleReflectMada,
+    handleSaveReflection,
     handleOpenSort,
     handleDecideSomedayItem,
     handleUpdateItemIntent,
@@ -224,6 +225,7 @@ export const App: React.FC = () => {
               canBundle,
               phase,
               aiBusyLabel,
+              proposalMinutes: activeProposal?.minutes,
               savedReaction,
             })
           )
@@ -266,6 +268,9 @@ export const App: React.FC = () => {
             onOpenSave={handleOpenSave}
             onOpenProposal={handleOpenProposal}
             onOpenReflect={() => openSheet('reflect')}
+            onDone={() => handleBuildSuccess()}
+            onMada={handleReflectMada}
+            onOpenReflection={() => openSheet('reflect')}
             onOpenPendingBundle={() => {
               if (pendingBundles[0]) {
                 setActiveBundleId(pendingBundles[0].id);
@@ -427,6 +432,8 @@ export const App: React.FC = () => {
                 onFinishDone={handleBuildSuccess}
                 onFinishMada={handleReflectMada}
                 onFinishRelease={handleReleaseActive}
+                afterDone={proposalStatus === 'done'}
+                onSaveReflection={handleSaveReflection}
               />
             ) : sheet === 'item' && activeItem ? (
               <S9ItemSheet
