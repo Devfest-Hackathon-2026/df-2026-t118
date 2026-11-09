@@ -152,7 +152,9 @@
     G.add(clayTree(-2.0, top, -0.7, K.green, 1)); G.add(clayTree(0.4, top, -1.9, K.green2, 0.95, true)); G.add(clayTree(2.2, top, 0.55, K.green, 0.85)); G.add(clayTree(-1.25, top, 1.75, K.lime, 0.8, true));
     [[1.7, 1.6], [1.35, 1.35], [1.0, 1.15], [0.6, 0.9], [0.2, 0.6], [-0.15, 0.3]].forEach(([x, z], i) => { const p = M(S(0.11, 14, 10), m(i % 2 ? K.cream : 0xe9dcc6), x, top, z); p.scale.set(1, 0.28, 1); G.add(p); });
     [[1.9, -0.9, K.pink], [2.1, -0.6, K.yellow], [-0.2, -1.6, K.pink], [-2.3, 0.1, K.yellow], [0.9, 2.2, K.pink], [-0.6, 2.3, K.yellow], [2.5, -0.2, K.pink]].forEach(([x, z, c]) => G.add(M(S(0.055, 12, 10), m(c), x, top + 0.04, z)));
-    return { top, bundle: [0.75, top, 1.55], build: [1.3, top, -0.6], extraBuilds: [[-1.4, top, 1.25], [0.35, top, -1.35], [1.85, top, 0.65]], char: [-0.35, top, 1.2] };
+    // #42: 建物の左手前 (build から -0.75, +0.55) は一段高い丘の内側に入り、平地の高さ top では体が埋まる。
+    // 丘・建物（1〜4棟）・束・木を避けた平地を、建物が建ったあとの立ち位置にする
+    return { top, bundle: [0.75, top, 1.55], build: [1.3, top, -0.6], extraBuilds: [[-1.4, top, 1.25], [0.35, top, -1.35], [1.85, top, 0.65]], char: [-0.35, top, 1.2], charBuild: [1.0, top, 0.35] };
   }
 
   function speckleMat(base, dot, glossy) { const t = tex(512, 512, (g, w, h) => { g.fillStyle = base; g.fillRect(0, 0, w, h); const R = rng(5); for (let i = 0; i < 520; i++) { g.fillStyle = dot; g.beginPath(); g.arc(R() * w, R() * h, 2 + R() * 5, 0, 7); g.fill(); } }); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 2); return new THREE.MeshPhysicalMaterial({ map: t, roughness: 0.34, clearcoat: glossy ? 0.9 : 0.5, clearcoatRoughness: 0.2 }); }
@@ -182,7 +184,9 @@
     G.add(clayTree(-2.0, top, -0.8, PU.lime, 1)); G.add(clayTree(0.4, top, -1.9, PU.lime, 0.95, true)); G.add(clayTree(2.2, top, -0.2, PU.lime, 0.8));
     [[0.2, -1.2, PU.yellow], [-1.3, 1.6, PU.yellow], [0.9, 2.1, PU.orange], [2.3, -0.9, PU.pink2], [-0.4, 2.2, PU.pink2]].forEach(([x, z, c]) => { const f = new THREE.Group(); f.position.set(x, top, z); for (let k = 0; k < 5; k++) { const a = (k / 5) * Math.PI * 2; f.add(M(S(0.07), m(c), Math.cos(a) * 0.08, 0.08, Math.sin(a) * 0.08)); } f.add(M(S(0.06), m(0xffffff), 0, 0.12, 0)); G.add(f); });
     [[1.6, 1.6], [1.25, 1.3], [0.85, 1.05], [0.45, 0.8], [0.05, 0.55]].forEach(([x, z]) => { const p = M(S(0.11), m(PU.cream), x, top, z); p.scale.set(1, 0.3, 1); G.add(p); });
-    return { top, bundle: [0.75, top, 1.55], build: [1.3, top, -0.6], extraBuilds: [[-1.4, top, 1.25], [0.35, top, -1.35], [1.85, top, 0.65]], char: [-0.35, top, 1.2] };
+    // #42: 建物の左手前 (build から -0.75, +0.55) は一段高い丘の内側に入り、平地の高さ top では体が埋まる。
+    // 丘・建物（1〜4棟）・束・木を避けた平地を、建物が建ったあとの立ち位置にする
+    return { top, bundle: [0.75, top, 1.55], build: [1.3, top, -0.6], extraBuilds: [[-1.4, top, 1.25], [0.35, top, -1.35], [1.85, top, 0.65]], char: [-0.35, top, 1.2], charBuild: [1.0, top, 0.35] };
   }
 
   function dioramaIsland(G, o, P) {
@@ -434,7 +438,7 @@
       });
     }
     let bun = null; if (o.bundle) { bun = makeBundle(spots.bundle); world.add(bun); if (o.anim === 'settle') bun.scale.setScalar(0.001); }
-    const ch = makeChar(o.character, night); const cpos = o.charAt === 'build' ? [spots.build[0] - 0.75, spots.top, spots.build[2] + 0.55] : o.charAt === 'bundle' ? [spots.bundle[0] - 0.5, spots.top, spots.bundle[2]] : spots.char;
+    const ch = makeChar(o.character, night); const charBuild = spots.charBuild || [spots.build[0] - 0.75, spots.top, spots.build[2] + 0.55]; const cpos = o.charAt === 'build' ? charBuild : o.charAt === 'bundle' ? [spots.bundle[0] - 0.5, spots.top, spots.bundle[2]] : spots.char;
     ch.g.position.set(...cpos); ch.g.userData.baseY = cpos[1]; ch.g.rotation.y = 0.35; world.add(ch.g);
     const pending = [];
     const cards = (o.cards || []).slice(0, 4).map((c, i) => {
@@ -473,7 +477,7 @@
       if (bld && o.anim === 'build') { const k = clamp((t - 0.7) / 2.3); bld.body.scale.y = Math.max(0.001, k < 1 ? easeOut(k) : 1); bld.sc.visible = k < 1; }
       if (o._tram) o._tram.position.x = Math.sin(t * 0.25) * 1.75;
       ch.idle(t);
-      if (o.anim === 'build') { const k = easeOut(clamp(t / 0.8)); const b = spots.build; tv.set(b[0] - 0.75, spots.top, b[2] + 0.55); ch.g.position.x = startChar.x + (tv.x - startChar.x) * k; ch.g.position.z = startChar.z + (tv.z - startChar.z) * k; }
+      if (o.anim === 'build') { const k = easeOut(clamp(t / 0.8)); tv.set(charBuild[0], charBuild[1], charBuild[2]); ch.g.position.x = startChar.x + (tv.x - startChar.x) * k; ch.g.position.z = startChar.z + (tv.z - startChar.z) * k; }
       scene.updateMatrixWorld(); cards.forEach((g) => g.lookAt(camera.position));
     }
     return { scene, camera, pivot, tick, cards, ch, pending, setAspect(a) { camera.aspect = a; fit(a); camera.updateProjectionMatrix(); placeCam(); }, setZoom(z) { if (z !== zoom) { zoom = z; placeCam(); } } };
