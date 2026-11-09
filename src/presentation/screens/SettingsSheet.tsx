@@ -87,7 +87,7 @@ export const SettingsSheet: React.FC<{
     <div className="settings-sheet">
       <div className="bundle__top">
         <div>
-          <span className="eyebrow eyebrow--accent">SETTINGS · 外観・Project・AI同意</span>
+          <span className="eyebrow eyebrow--accent">SETTINGS</span>
           <h2 className="display display--sm" style={{ marginTop: '4px' }}>
             Island Settings
           </h2>
@@ -114,7 +114,7 @@ export const SettingsSheet: React.FC<{
           </div>
         ) : (
           <span style={{ fontSize: '12.5px', color: 'var(--muted)' }}>
-            登録すると、保存直後や夜のクラスタリング時に自動で照合されます。
+            登録すると、保存したものが自動で振り分けられます。
           </span>
         )}
 
@@ -177,7 +177,7 @@ export const SettingsSheet: React.FC<{
         </label>
 
         <label>
-          <span>島の 3D 質感</span>
+          <span>島の質感</span>
           <select
             value={islandStyle}
             onChange={(e) => onChangeIslandStyle(e.target.value as IslandStyleKind)}
@@ -189,7 +189,7 @@ export const SettingsSheet: React.FC<{
         </label>
 
         <label>
-          <span>今日の一歩（提案）の見せ方</span>
+          <span>今日の一歩の見せ方</span>
           <select
             value={proposalStyle}
             onChange={(e) => onChangeProposalStyle(e.target.value as ProposalStyleKind)}
@@ -202,7 +202,7 @@ export const SettingsSheet: React.FC<{
         {profile && onUpdateProfile ? (
           <>
             <label>
-              <span>タイムゾーン（1日1提案の日付基準）</span>
+              <span>タイムゾーン</span>
               <select
                 value={profile.timezone}
                 onChange={(e) =>
@@ -221,7 +221,7 @@ export const SettingsSheet: React.FC<{
             </label>
 
             <label>
-              <span>Gemini AI への送信同意</span>
+              <span>Gemini に送ってもよい</span>
               <input
                 type="checkbox"
                 checked={profile.aiConsentGranted}
@@ -238,98 +238,17 @@ export const SettingsSheet: React.FC<{
       </div>
 
       <div className="card">
-        <span className="eyebrow eyebrow--muted">STATUS · 保存状況とAI送信ポリシー</span>
+        <span className="eyebrow eyebrow--muted">STATUS · 保存状況</span>
         <span style={{ fontSize: '13.5px' }}>
           保存したインスピレーション: <strong>{totalItemsCount} 件</strong> ／ 束・Project:{' '}
           <strong>{bundlesCount} 件</strong>
         </span>
-        <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-          同期モード:{' '}
-          {firebaseConnected
-            ? 'Firebase Cloud (Auth + Firestore + Storage)'
-            : 'ローカルストレージ + Gemini API'}
-        </span>
         <span style={{ fontSize: '11.5px', color: 'var(--muted)' }}>
-          ※AI送信がオンのとき、選択した画像・テキストは意図候補と1日1提案の生成のためにのみ Gemini API へ送信されます。オフ時は端末内で手動保存・分類できます。
+          ※送信がオンのときだけ、選んだ画像・テキストを Gemini に送ります。
         </span>
       </div>
 
-      {/* B1〜B6: 3D 建物ライブラリ & 島の成長ステージ切替（案1：テーマ自動決定＋複数棟成長＋いつでもプレビュー） */}
-      {onSelectBuildingKind || onSelectGrowthStage ? (
-        <div className="card" style={{ gap: '8px' }}>
-          <span className="eyebrow eyebrow--accent">
-            3D BUILDING LIBRARY · 6種の建物ライブラリと島の成長
-          </span>
-          <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-            一歩を達成すると、束のテーマに合わせて6種類（B1〜B6）から自動で建物が決まり、島に最大4棟まで建ち並びます。ここから直接プレビューもできます。
-          </span>
-
-          {onSelectBuildingKind ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              {BUILDING_LIBRARY_CATALOG.map((item) => {
-                const isSelected = buildingKind === item.kind && builtBuildings.length <= 1;
-                return (
-                  <button
-                    key={item.kind}
-                    className={`btn ${isSelected ? 'btn--ink' : 'btn--ghost'} btn--pill`}
-                    style={{
-                      justifyContent: 'space-between',
-                      textAlign: 'left',
-                      padding: '8px 13px',
-                    }}
-                    onClick={() => onSelectBuildingKind(item.kind)}
-                  >
-                    <span style={{ fontSize: '12px', fontWeight: 500 }}>
-                      {item.code}: {item.nameJa}（{item.signText}）
-                    </span>
-                    <span style={{ fontSize: '11px', opacity: 0.85 }}>{item.nameEn}</span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-
-          {onSelectGrowthStage ? (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
-              <button
-                className="btn btn--ghost btn--pill btn--sm"
-                onClick={() => onSelectGrowthStage(['atelier'])}
-              >
-                成長 Stage 1（1棟）
-              </button>
-              <button
-                className="btn btn--ghost btn--pill btn--sm"
-                onClick={() => onSelectGrowthStage(['atelier', 'kitchen_cafe'])}
-              >
-                成長 Stage 2（2棟）
-              </button>
-              <button
-                className="btn btn--ghost btn--pill btn--sm"
-                onClick={() =>
-                  onSelectGrowthStage(['atelier', 'kitchen_cafe', 'greenhouse'])
-                }
-              >
-                成長 Stage 3（3棟）
-              </button>
-              <button
-                className="btn btn--ink btn--pill btn--sm"
-                onClick={() =>
-                  onSelectGrowthStage([
-                    'atelier',
-                    'kitchen_cafe',
-                    'greenhouse',
-                    'study_tower',
-                  ])
-                }
-              >
-                成長 Stage 4（4棟・にぎやかな島）
-              </button>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {/* お便りのあんしん設定。もともと しまの連絡箱 の中にあったが、
+      {/* お便りの設定。もともと しまの連絡箱 の中にあったが、
           連絡箱は読む場所に絞りたいのでここへ移した */}
       {discoverySettings && onUpdateDiscoverySettings ? (
         <IslandSettingsSection
@@ -342,42 +261,17 @@ export const SettingsSheet: React.FC<{
         />
       ) : null}
 
-      {/* 複数ユースケース・ペルソナプリセット切替（DB・PARA検証用） */}
-      {onLoadUseCasePreset ? (
-        <div className="card" style={{ gap: '8px' }}>
-          <span className="eyebrow eyebrow--accent">
-            USE CASE SCENARIOS · 複数ユースケース検証（DBプリセット切替）
-          </span>
-          <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-            全6分野・48ユースケースから代表的な4つのユーザー像（Projects / Areas / Resources / 今日の一歩）をワンタップでDBへ読み込めます。
-          </span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {personaPresets.map((preset) => (
-              <button
-                key={preset.id}
-                className="btn btn--ghost btn--pill"
-                style={{ justifyContent: 'space-between', textAlign: 'left', padding: '10px 14px' }}
-                onClick={() => onLoadUseCasePreset(preset.id)}
-              >
-                <span style={{ fontSize: '12.5px', fontWeight: 500 }}>{preset.label}</span>
-                <span className="eyebrow eyebrow--accent">{preset.badge}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
       {onOpenDiscoveryInbox ? (
         <button className="btn btn--ink btn--pill" onClick={onOpenDiscoveryInbox}>
           <Icon name="mail" />
-          連絡箱・能動発見設定（個別同意・人物確認・検索語プレビュー）を開く
+          ぽこのお便りを開く
         </button>
       ) : null}
 
       {onReopenOnboarding ? (
         <button className="btn btn--ghost btn--pill" onClick={onReopenOnboarding}>
           <Icon name="tune" />
-          初回アンケート（4問）をやり直す
+          最初の質問をやり直す
         </button>
       ) : null}
 
@@ -392,6 +286,119 @@ export const SettingsSheet: React.FC<{
         <Icon name="restart_alt" />
         島のデータを初期化する
       </button>
+
+      {/* デモ撮影と検証のための項目。ユーザーが迷わないよう一番下にまとめ、最初は閉じておく */}
+      <details className="card dev-section">
+        <summary>
+          <span className="eyebrow eyebrow--muted">DEV · 開発・デモ用</span>
+        </summary>
+        <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
+          同期モード:{' '}
+          {firebaseConnected
+            ? 'Firebase Cloud (Auth + Firestore + Storage)'
+            : 'ローカルストレージ + Gemini API'}
+        </span>
+
+        {/* B1〜B6: 3D 建物ライブラリ & 島の成長ステージ切替（案1：テーマ自動決定＋複数棟成長＋いつでもプレビュー） */}
+        {onSelectBuildingKind || onSelectGrowthStage ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <span className="eyebrow eyebrow--accent">
+              3D BUILDING LIBRARY · 6種の建物ライブラリと島の成長
+            </span>
+            <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
+              一歩を達成すると、束のテーマに合わせて6種類（B1〜B6）から自動で建物が決まり、島に最大4棟まで建ち並びます。ここから直接プレビューもできます。
+            </span>
+
+            {onSelectBuildingKind ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                {BUILDING_LIBRARY_CATALOG.map((item) => {
+                  const isSelected = buildingKind === item.kind && builtBuildings.length <= 1;
+                  return (
+                    <button
+                      key={item.kind}
+                      className={`btn ${isSelected ? 'btn--ink' : 'btn--ghost'} btn--pill`}
+                      style={{
+                        justifyContent: 'space-between',
+                        textAlign: 'left',
+                        padding: '8px 13px',
+                      }}
+                      onClick={() => onSelectBuildingKind(item.kind)}
+                    >
+                      <span style={{ fontSize: '12px', fontWeight: 500 }}>
+                        {item.code}: {item.nameJa}（{item.signText}）
+                      </span>
+                      <span style={{ fontSize: '11px', opacity: 0.85 }}>{item.nameEn}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            {onSelectGrowthStage ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+                <button
+                  className="btn btn--ghost btn--pill btn--sm"
+                  onClick={() => onSelectGrowthStage(['atelier'])}
+                >
+                  成長 Stage 1（1棟）
+                </button>
+                <button
+                  className="btn btn--ghost btn--pill btn--sm"
+                  onClick={() => onSelectGrowthStage(['atelier', 'kitchen_cafe'])}
+                >
+                  成長 Stage 2（2棟）
+                </button>
+                <button
+                  className="btn btn--ghost btn--pill btn--sm"
+                  onClick={() =>
+                    onSelectGrowthStage(['atelier', 'kitchen_cafe', 'greenhouse'])
+                  }
+                >
+                  成長 Stage 3（3棟）
+                </button>
+                <button
+                  className="btn btn--ink btn--pill btn--sm"
+                  onClick={() =>
+                    onSelectGrowthStage([
+                      'atelier',
+                      'kitchen_cafe',
+                      'greenhouse',
+                      'study_tower',
+                    ])
+                  }
+                >
+                  成長 Stage 4（4棟・にぎやかな島）
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {/* 複数ユースケース・ペルソナプリセット切替（DB・PARA検証用） */}
+        {onLoadUseCasePreset ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <span className="eyebrow eyebrow--accent">
+              USE CASE SCENARIOS · 複数ユースケース検証（DBプリセット切替）
+            </span>
+            <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
+              全6分野・48ユースケースから代表的な4つのユーザー像（Projects / Areas / Resources / 今日の一歩）をワンタップでDBへ読み込めます。
+            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {personaPresets.map((preset) => (
+                <button
+                  key={preset.id}
+                  className="btn btn--ghost btn--pill"
+                  style={{ justifyContent: 'space-between', textAlign: 'left', padding: '10px 14px' }}
+                  onClick={() => onLoadUseCasePreset(preset.id)}
+                >
+                  <span style={{ fontSize: '12.5px', fontWeight: 500 }}>{preset.label}</span>
+                  <span className="eyebrow eyebrow--accent">{preset.badge}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </details>
     </div>
   );
 };

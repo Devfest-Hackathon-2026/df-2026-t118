@@ -7,7 +7,7 @@ import type {
 } from '../../domain/models/proactiveDiscoveryModels';
 import { previewMinimalSearchQuery } from '../../domain/rules/proactiveDiscoveryRules';
 
-// 「お便りのあんしん設定」。もともと しまの連絡箱 の中にあったが、
+// 「お便りの設定」。もともと しまの連絡箱 の中にあったが、
 // 連絡箱は「お便り」と「好き」帳を読む場所に絞りたいので、設定シートへ移した。
 export const IslandSettingsSection: React.FC<{
   settings: DiscoverySettings;
@@ -49,11 +49,11 @@ export const IslandSettingsSection: React.FC<{
   return (
     <div className="card demo__opts" style={{ gap: '10px' }}>
       <span className="eyebrow eyebrow--muted">
-        PEACE OF MIND SETTINGS · お便りのあんしん設定（Project・Area ＆ 予算上限）
+        LETTERS · お便りの設定
       </span>
 
       <label>
-        <span>① AIサポートを使う（保存時の意図まとめ・スクショの文字読み取り）</span>
+        <span>① AI に保存物を読んでもらう</span>
         <input
           type="checkbox"
           checked={settings.aiConsentGranted}
@@ -67,7 +67,7 @@ export const IslandSettingsSection: React.FC<{
       </label>
 
       <label>
-        <span>② 好きな人の公演や記事を外で探してくる（最初はオフ）</span>
+        <span>② 好きな人の公演や記事を探す</span>
         <input
           type="checkbox"
           checked={settings.searchConsentGranted}
@@ -81,7 +81,7 @@ export const IslandSettingsSection: React.FC<{
       </label>
 
       <label>
-        <span>③ お便りが届いたらスマホに通知する（最初はオフ・中身は伏せて通知）</span>
+        <span>③ お便りが届いたら通知する</span>
         <input
           type="checkbox"
           checked={settings.notificationEnabled}
@@ -95,7 +95,7 @@ export const IslandSettingsSection: React.FC<{
       </label>
 
       <label>
-        <span>お便り探しをしばらくお休みする</span>
+        <span>しばらくお休みする</span>
         <input
           type="checkbox"
           checked={settings.paused}
@@ -106,7 +106,7 @@ export const IslandSettingsSection: React.FC<{
       {/* Project と Area の両方をワンタップで対象に選べる */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <span style={{ fontSize: '12.5px', fontWeight: 600 }}>
-          お便りを探してほしいテーマ（Project と Area の両方から選べます）
+          探してほしいテーマ
         </span>
         {activeProjects.length > 0 || activeAreas.length > 0 ? (
           <div className="row-chips">
@@ -160,7 +160,7 @@ export const IslandSettingsSection: React.FC<{
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
           <span style={{ fontSize: '12.5px', fontWeight: 600 }}>
-            月の検索コスト上限（超えたら自動でストップ）
+            月の検索コスト上限
           </span>
           <span className="chip chip--ink" style={{ fontSize: '11px' }}>
             上限 ${budgetLimitUsd.toFixed(2)} / 月（現在 約${estimatedUsedUsd.toFixed(2)}）
@@ -181,14 +181,14 @@ export const IslandSettingsSection: React.FC<{
           ))}
         </div>
         <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
-          ※1日1回だけ最小限の検索をするため、通常は月 $0.50〜$3.00 以内に収まります。上限に達すると自動で外への検索を止めるので安心です。
+          ※上限に達すると自動で止まります。
         </span>
       </div>
 
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: '140px' }}>
           <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-            行きやすい地域（任意・現在地の自動取得はしません）
+            行きやすい地域（任意）
           </span>
           <input
             type="text"
@@ -237,7 +237,7 @@ export const IslandSettingsSection: React.FC<{
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
           <span style={{ fontSize: '11.5px', fontWeight: 700 }}>
-            外で探すときに使う検索ワード（これだけを送ります）
+            送る検索ワード（これだけを送ります）
           </span>
           <span className="eyebrow eyebrow--accent">{queryPreview.statusNote}</span>
         </div>
@@ -245,13 +245,13 @@ export const IslandSettingsSection: React.FC<{
           {queryPreview.previewQuery}
         </code>
         <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
-          ※あなたが保存した写真や個人のメモ、住所などは一切含まれません。
+          ※写真・メモ・住所は含みません。
         </span>
       </div>
 
       {/* 参考にしている情報元 */}
       <div style={{ fontSize: '11.5px', color: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-        <strong>しまがチェックする安心な情報元:</strong>
+        <strong>チェックする情報元:</strong>
         {curatedSources.map((src) => (
           <div key={src.id}>
             ・{src.name}（

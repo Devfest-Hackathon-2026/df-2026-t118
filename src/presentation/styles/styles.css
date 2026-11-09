@@ -865,3 +865,10 @@ button:disabled { opacity: 0.6; cursor: wait; }
   .hint--mouse { display: none; }
   .hint--touch { display: inline; }
 }
+
+/* 設定シートの「開発・デモ用」。<details> の既定の三角を消し、見出しとして押せるようにする */
+.dev-section > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+.dev-section > summary::-webkit-details-marker { display: none; }
+.dev-section > summary::after { content: '＋'; color: var(--muted); font: 500 14px var(--jp); }
+.dev-section[open] > summary::after { content: '−'; }
+.dev-section:not([open]) { gap: 0; }
