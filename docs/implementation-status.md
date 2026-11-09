@@ -232,6 +232,22 @@ Vertex AI へ寄せると認証方式（API キー → サービスアカウン�
 細かい点: `listUserIds(100)` でユーザー 100 人打ち止め。`saveNightBundlesForUser` が逐次 `await` で
 `writeBatch` を使っていないため、途中で失敗すると束だけできて `items` が更新されない状態が残る。
 
+#### 本番データの掃除（2026-11-09）
+
+本番 Firestore の匿名ユーザーの「好き」帳に、**実在のミュージシャン名と実在のアルバム名**が入っていた。
+コードの初期値は架空名（[`proactiveDiscoveryRules.ts`](../src/domain/rules/proactiveDiscoveryRules.ts) の `蒼井ことね`）なので、
+人手で入力されたもの。提出要件 6「テストアカウントやサンプルデータに実在の個人情報を使わない」に触れるため削除した。
+
+- 対象は `confirmedSubjects` の 1 件のみ。`researchReports` / `items` / `bundles` / `proposals` /
+  `discoverySettings` には同じ名前は入っていなかった（当該レポートは `question_only` で `queryUsed: null`）
+- アプリの「消す」は `confirmationState: 'deleted'` にするソフト削除で**名前が残る**ため、
+  `firestore:delete` でドキュメントごと消した
+- アプリが再同期で書き戻さないよう、端末側の状態を消してタブを閉じてから削除した
+- 削除後に `localStorage` を空にして読み直し、架空名の初期値だけに戻ることを確認した
+
+**注意**: 確認できたのは検証に使った 1 ユーザーぶんだけ。ほかの匿名ユーザーに同じ入力が残っている可能性は、
+Admin 権限で全ユーザーを見ないと確かめられない。
+
 #### 整合していたもの
 
 F3 の意図 3 候補と `urlFetched: false` の誠実な扱い（R04）、F5 の「2 件以上かつ意図確定済み」、
@@ -267,13 +283,13 @@ AI 送信同意 OFF の除外、非機能「本人だけが見られる」。
 | 11 | 冪等性・リース判定・公開直前の同意再確認をサーバー側で効かせる（2.7） | [#29](https://github.com/Kambara-Michiru/hannari-hustlers/pull/29) |
 | 12 | callable 5 関数を認証必須にし、`/api/*` に ID トークンを付ける（2.7） | [#29](https://github.com/Kambara-Michiru/hannari-hustlers/pull/29) |
 | 13 | `getDb()` が既定アプリ不在で `app/no-app` に落ちる不具合を修正（2.7） | [#29](https://github.com/Kambara-Michiru/hannari-hustlers/pull/29) |
+| 18 | **本番 Firestore から実在のミュージシャン名を削除**（`users/{uid}/confirmedSubjects/subj_ichiko_aoba`）。提出要件 6 対応 | — |
 
 ### 残っていること
 
 | # | やること | 優先 |
 |---|---|---|
 | 17 | 2.8 の残ギャップ a・d・e・f（定時ジョブ 4 つのうち 2 つ、「まだ」2 回連続、通知 2 回無視、Genkit 依存）。いずれも要件側を MVP 実態に落とすか実装するかの判断が要る | P2 |
-| 14 | **本番の Firestore に実在のミュージシャン名が「好き」帳として残っている**。2026-11-09 の検証中、匿名ユーザーの `confirmedSubjects` に実在のアーティスト名と実在のアルバム名が入っているのを確認した。コードの初期値は架空名（`蒼井ことね`）なので、人手で入力されたもの。提出要件 6「テストアカウントやサンプルデータに実在の個人情報を使わない」に触れるので消す。同じ検証で増えた `researchReports` / `researchJobs` も一緒に消す | **P1** |
 | 15 | **モバイル Safari の WebGL で島が 60fps を保てるかの実測** — 実機（iPhone）と Mac の Web Inspector が要る。測り方は [`tech-selection.md`](tech-selection.md) の要確認に書いた | P2 |
 | 16 | Firestore ベクトル検索の**リージョン別料金**は公式に記載が見つからず未確定。ただし現状このプロジェクトはベクトルインデックスを使っていないため課金は発生しない | P3 |
 
