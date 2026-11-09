@@ -184,6 +184,46 @@ Vertex AI へ寄せると認証方式（API キー → サービスアカウン�
 - 能動発見の定時実行（`onSchedule`）は無い。走るのは連絡箱の「いま探す」を押したときだけ
 - ローカル開発（Vite ミドルウェア）は Cloud Functions を経由しないため、保存は行われない
 
+### 2.8 要件とバックエンド実装の突き合わせ（2026-11-09）
+
+[`requirements.md`](requirements.md) と [`architecture.md`](architecture.md) を `functions/src/` と突き合わせた結果。
+
+#### ✅ 直したもの
+
+**定時バッチが書いたものをクライアントが読めなかった。** `saveNightBundlesForUser` / `saveMorningProposalForUser` が
+`add()` で自動 doc id を振り、中身に `id` を入れていなかった。クライアント（[`firestoreRepository.ts`](../src/infrastructure/firebase/firestoreRepository.ts)）は
+`d.data()` だけを読んで doc id を捨てるため、読み戻すと `id: undefined` になる。結果として
+
+- `items.bundleId === bundle.id` の突合が外れる（束に保存物が入らない）
+- `proposals.find(p => p.id === activeProposalId)` が永久に一致しない（朝の提案が画面に出ない）
+- `Bundle.buildingLevel` が未設定のまま書かれ、振り返り（F8）の `+1` が `NaN` になる
+
+つまり **夜 23:00 / 朝 8:00 のジョブが動いても成果が UI に出てこなかった**。2.7 の `app/no-app` でバッチ自体が
+落ちていたため、この不整合は一度も表に出ていなかったと見ている。書く形を
+[`firestoreDocuments.ts`](../functions/src/domain/firestoreDocuments.ts) の純粋関数に切り出し、`src/__tests__` から
+フロントの `Bundle` / `Proposal` 型への代入で固定した（型が増えたら検査で落ちる）。読み側でも doc id を補う。
+
+#### ⚠️ 残っているギャップ
+
+| # | 要件 | 実装 |
+|---|---|---|
+| a | [`requirements.md`](requirements.md) 「定時ジョブ（夜の整理、朝の提案、**振り返り、週 1 の仕分け**）」 | 定時は夜・朝の 2 つだけ。振り返りの催促と週 1 仕分けはクライアント操作のみ。`architecture.md` は 2 つしか書いていないので、ズレているのは requirements 側 |
+| b | バッチは全ユーザーを処理する | [`scheduledBatchUseCases.ts`](../functions/src/application/scheduledBatchUseCases.ts) のループに `try/catch` が無く、1 人で例外が出ると残り全員が処理されない |
+| c | F5「本人が 1 タップで承認」／提案対象はアクティブな Project | `getReadyBundleForUser` が `approvalStatus: 'pending'` を除外せず、Project の `status` も見ていない。フロントは [`islandRules.ts`](../src/domain/rules/islandRules.ts) で両方除外しているので、**サーバーだけが未承認の束で提案を出す** |
+| d | 「『まだ』が 2 回続いたら、もっと小さな一歩に分けるか、手放すかを聞く」 | `previousStatus` は直近 1 回ぶんのみ。連続カウンタも「手放すか聞く」分岐も無い |
+| e | 「通知を 2 回続けて無視されたら週 1 の仕分けに回す」 | 通知自体が未実装（2.7）。要件側を落とすのが素直 |
+| f | 「エージェント用の重いフレームワークは MVP では使わない」 | `genkit` / `@genkit-ai/googleai` が依存に残っている（実行経路外・4 章の後始末） |
+
+細かい点: `listUserIds(100)` でユーザー 100 人打ち止め。`saveNightBundlesForUser` が逐次 `await` で
+`writeBatch` を使っていないため、途中で失敗すると束だけできて `items` が更新されない状態が残る。
+
+#### 整合していたもの
+
+F3 の意図 3 候補と `urlFetched: false` の誠実な扱い（R04）、F5 の「2 件以上かつ意図確定済み」、
+Someday 束が `readyForProposal: false` で提案対象から外れること、1 日 1 提案の現地日付冪等
+（クライアントも `localDate` を書くのでサーバーの `hasProposalForLocalDate` と噛み合う）、
+AI 送信同意 OFF の除外、非機能「本人だけが見られる」。
+
 ---
 
 ## 3. するべきこと
@@ -217,6 +257,7 @@ Vertex AI へ寄せると認証方式（API キー → サービスアカウン�
 
 | # | やること | 優先 |
 |---|---|---|
+| 17 | 2.8 の残ギャップ a〜f。優先は **b（バッチのループが 1 人で止まる）→ c（未承認の束で提案を出す）** | P1 |
 | 14 | **本番の Firestore に実在のミュージシャン名が「好き」帳として残っている**。2026-11-09 の検証中、匿名ユーザーの `confirmedSubjects` に実在のアーティスト名と実在のアルバム名が入っているのを確認した。コードの初期値は架空名（`蒼井ことね`）なので、人手で入力されたもの。提出要件 6「テストアカウントやサンプルデータに実在の個人情報を使わない」に触れるので消す。同じ検証で増えた `researchReports` / `researchJobs` も一緒に消す | **P1** |
 | 15 | **モバイル Safari の WebGL で島が 60fps を保てるかの実測** — 実機（iPhone）と Mac の Web Inspector が要る。測り方は [`tech-selection.md`](tech-selection.md) の要確認に書いた | P2 |
 | 16 | Firestore ベクトル検索の**リージョン別料金**は公式に記載が見つからず未確定。ただし現状このプロジェクトはベクトルインデックスを使っていないため課金は発生しない | P3 |

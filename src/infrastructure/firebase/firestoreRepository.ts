@@ -96,11 +96,13 @@ export async function loadFromFirestore(): Promise<{
     const items = itemsSnap.docs
       .map((d) => d.data() as SavedItem)
       .sort((a, b) => a.createdAt - b.createdAt);
+    // 束と提案は定時バッチ（サーバー）も作る。doc id を捨てて読むと、サーバーが中身に id を
+    // 入れ忘れたときに id: undefined のまま画面へ流れてしまうので、doc id で必ず補う。
     const bundles = bundlesSnap.docs
-      .map((d) => d.data() as Bundle)
+      .map((d) => ({ ...(d.data() as Bundle), id: d.id }))
       .sort((a, b) => b.createdAt - a.createdAt);
     const proposals = proposalsSnap.docs
-      .map((d) => d.data() as Proposal)
+      .map((d) => ({ ...(d.data() as Proposal), id: d.id }))
       .sort((a, b) => b.createdAt - a.createdAt);
     const projects = projectsSnap.docs
       .map((d) => d.data() as ProjectEntity)

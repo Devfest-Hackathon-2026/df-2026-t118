@@ -13,6 +13,10 @@ import type {
   ResearchReport,
 } from '../domain/proactiveDiscoverySchemas.js';
 import type { DiscoveryStore } from '../application/discoveryPersistenceUseCases.js';
+import {
+  buildBundleDocument,
+  buildProposalDocument,
+} from '../domain/firestoreDocuments.js';
 
 type SavedItemSummary = z.infer<typeof SavedItemSummarySchema>;
 
@@ -119,12 +123,13 @@ export async function saveNightBundlesForUser(
   const db = getDb();
   const userRef = db.collection('users').doc(uid);
 
+  const nowMs = Date.now();
   for (const b of bundles) {
-    const bundleRef = await userRef.collection('bundles').add({
-      ...b,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
+    // doc() で先に ID を採ってから中身に入れる。add() のままだと doc id だけが ID になり、
+    // doc id を捨てて読むクライアント側で id: undefined になる（firestoreDocuments.ts 参照）
+    const bundleRef = userRef.collection('bundles').doc();
+    await bundleRef.set(buildBundleDocument(b, bundleRef.id, nowMs));
+
     for (const itemId of b.itemIds) {
       await userRef.collection('items').doc(itemId).update({
         bundleId: bundleRef.id,
@@ -217,14 +222,17 @@ export async function saveMorningProposalForUser(
 ): Promise<void> {
   const db = getDb();
   const userRef = db.collection('users').doc(uid);
-  const propRef = await userRef.collection('proposals').add({
-    bundleId,
-    localDate,
-    timezoneAtCreation: timezone,
-    ...step,
-    status: 'ready',
-    createdAt: Date.now(),
-  });
+  const propRef = userRef.collection('proposals').doc();
+  await propRef.set(
+    buildProposalDocument({
+      id: propRef.id,
+      bundleId,
+      localDate,
+      timezone,
+      step,
+      nowMs: Date.now(),
+    })
+  );
 
   await userRef.set(
     {
