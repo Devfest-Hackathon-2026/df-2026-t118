@@ -42,6 +42,21 @@ export interface IslandCanvasProps {
 }
 
 // 3D の島は一度マウントしたらアンマウントせず、ctrl.set() で差分更新する（ADR-002 / ADR-003）
+// 島に浮かべるカード1枚分の描画オプション
+export function toIslandCard(it: SavedItem): IslandCardOpt {
+  if (!it.intentConfirmed) {
+    return { unknown: true, kind: it.kind, color: it.color };
+  }
+  return {
+    kind: it.kind,
+    // カードの文字は保存物のタイトルにする。意図の文（「見るだけ・参考（…」など）だと何を保存したかわからない（#46）
+    title: it.title,
+    color: it.color,
+    sticker: it.stickerDataUrl,
+    aspect: it.aspect || 1,
+  };
+}
+
 export const IslandCanvas: React.FC<IslandCanvasProps> = ({
   styleKind,
   character,
@@ -75,18 +90,7 @@ export const IslandCanvas: React.FC<IslandCanvasProps> = ({
 
   const buildOpts = (): IslandMountOpts => {
     const visible = floatingItems.slice(-4);
-    const cards: IslandCardOpt[] = visible.map((it) => {
-      if (!it.intentConfirmed) {
-        return { unknown: true, kind: it.kind, color: it.color };
-      }
-      return {
-        kind: it.kind,
-        title: it.intent || it.title,
-        color: it.color,
-        sticker: it.stickerDataUrl,
-        aspect: it.aspect || 1,
-      };
-    });
+    const cards: IslandCardOpt[] = visible.map(toIslandCard);
 
     return {
       style: styleKind,

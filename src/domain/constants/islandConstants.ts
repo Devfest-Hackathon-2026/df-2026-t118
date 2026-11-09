@@ -167,7 +167,7 @@ export function buildUseCasePersonaPresets(localDate: string): UseCasePersonaPre
     {
       id: 'design_maker',
       label: '① デザイン・ものづくり（しまのデモ制作）',
-      badge: 'デモ例① (#1〜#10)',
+      badge: 'デモ例①',
       description:
         'かわいいホーム画面・丸みカードUI・キャラクター画像を「しまのデモを完成させる」Projectへ結び、3Dジオラマを参考資料（Resources）として残すパターン',
       character: 'poko',
@@ -211,7 +211,7 @@ export function buildUseCasePersonaPresets(localDate: string): UseCasePersonaPre
           kind: 'INSTAGRAM',
           url: 'https://www.instagram.com/p/cute-home-ui/',
           urlFetched: false,
-          rawText: 'パステル調で余白が心地よいかわいいアプリのホーム画面（#1）',
+          rawText: 'パステル調で余白が心地よいかわいいアプリのホーム画面',
           title: 'かわいいアプリのホーム画面',
           source: 'Instagram',
           note: 'InstagramのURLとメモから「しまのデモ」向けの意図を整理したよ',
@@ -236,7 +236,7 @@ export function buildUseCasePersonaPresets(localDate: string): UseCasePersonaPre
         {
           id: 'uc-item-02',
           kind: 'SCREENSHOT',
-          rawText: 'Pinterestで集めた、角丸28pxのすりガラス風カードUI（#2）',
+          rawText: 'Pinterestで集めた、角丸28pxのすりガラス風カードUI',
           title: '丸みのあるガラスカードUI',
           source: 'Pinterest',
           note: 'カードの角丸と余白バランスがまとまったスクショ',
@@ -261,7 +261,7 @@ export function buildUseCasePersonaPresets(localDate: string): UseCasePersonaPre
         {
           id: 'uc-item-08',
           kind: 'PHOTO',
-          rawText: 'ミニチュアの街角と柔らかい光の3Dジオラマ模型（#8）',
+          rawText: 'ミニチュアの街角と柔らかい光の3Dジオラマ模型',
           title: '気になる3Dの島とジオラマ画像',
           source: 'カメラロール',
           note: 'すぐ実装はしないけれど世界観の参考として残す写真',
@@ -323,7 +323,7 @@ export function buildUseCasePersonaPresets(localDate: string): UseCasePersonaPre
     {
       id: 'cooking_living',
       label: '② 料理・食べもの・暮らし（おやつ＆朝食・ベランダ菜園）',
-      badge: 'デモ例② (#11〜#16, #33〜#40)',
+      badge: 'デモ例②',
       description:
         '朝食・電子レンジおやつの投稿を「今週の朝食・おやつを試す」Projectや「食生活・日々の料理」Areaへ結び、カフェ風ドリンクをResourcesに残すパターン',
       character: 'tomori',
@@ -359,7 +359,7 @@ export function buildUseCasePersonaPresets(localDate: string): UseCasePersonaPre
           kind: 'INSTAGRAM',
           url: 'https://www.instagram.com/p/easy-morning-toast/',
           urlFetched: false,
-          rawText: '5分で作れるアボカドと卵の簡単朝食トーストレシピ（#11）',
+          rawText: '5分で作れるアボカドと卵の簡単朝食トーストレシピ',
           title: '簡単な朝食トーストレシピ',
           source: 'Instagram',
           note: 'いつもと違う朝食を気軽に試せるレシピ投稿',
@@ -384,7 +384,7 @@ export function buildUseCasePersonaPresets(localDate: string): UseCasePersonaPre
         {
           id: 'uc-item-13',
           kind: 'SCREENSHOT',
-          rawText: 'マグカップと電子レンジ3分で作れる米粉ココアおやつ（#13）',
+          rawText: 'マグカップと電子レンジ3分で作れる米粉ココアおやつ',
           title: '電子レンジで作れるおやつの投稿',
           source: 'カメラロール',
           note: 'オーブン不要で家にある材料で試せるおやつメモ',
@@ -409,7 +409,7 @@ export function buildUseCasePersonaPresets(localDate: string): UseCasePersonaPre
         {
           id: 'uc-item-14',
           kind: 'PHOTO',
-          rawText: 'わっぱ弁当の彩りおかずと仕切りの盛りつけ写真（#14）',
+          rawText: 'わっぱ弁当の彩りおかずと仕切りの盛りつけ写真',
           title: 'かわいいお弁当の盛りつけ写真',
           source: 'カメラロール',
           note: '日々の料理の彩りアイデアとしてAreaに紐づけ',
@@ -486,7 +486,7 @@ export function buildUseCasePersonaPresets(localDate: string): UseCasePersonaPre
     {
       id: 'second_brain_study',
       label: '③ ツール・学び・仕事（ObsidianでSecond Brain構築＆就活）',
-      badge: 'デモ例③ (#23〜#32)',
+      badge: 'デモ例③',
       description:
         'Obsidianの投稿・ノート整理記事・画面スクショが「Second Brainの仕組みを作る」Projectにまとまり、最初のPARAフォルダを作る一歩につながるパターン',
       character: 'fumi',
@@ -530,7 +530,7 @@ export function buildUseCasePersonaPresets(localDate: string): UseCasePersonaPre
           kind: 'ARTICLE',
           url: 'https://example.com/obsidian-second-brain-intro',
           urlFetched: true,
-          rawText: 'ObsidianとPARAメソッドで始めるSecond Brainの作り方（#23）',
+          rawText: 'ObsidianとPARAメソッドで始めるSecond Brainの作り方',
           title: 'Obsidianで始めるSecond Brain紹介',
           source: 'note.com',
           note: 'Projects / Areas / Resources / Archives の4フォルダ構成の解説記事',
@@ -557,7 +557,7 @@ export function buildUseCasePersonaPresets(localDate: string): UseCasePersonaPre
           kind: 'VIDEO',
           url: 'https://www.youtube.com/watch?v=note-taking-para',
           urlFetched: false,
-          rawText: '授業のメモを後から見返しやすくするデイリーノート整理術（#26）',
+          rawText: '授業のメモを後から見返しやすくするデイリーノート整理術',
           title: 'ノートの整理方法の動画',
           source: 'youtube.com',
           note: '見出し3つでまとめるノートテンプレートの紹介',
@@ -584,7 +584,7 @@ export function buildUseCasePersonaPresets(localDate: string): UseCasePersonaPre
           kind: 'ARTICLE',
           url: 'https://example.com/education-statistics-2026',
           urlFetched: true,
-          rawText: '情報系学生の学習ツール利用統計データ記事（#32）',
+          rawText: '情報系学生の学習ツール利用統計データ記事',
           title: '学習ツール利用統計データの記事',
           source: 'research.example.jp',
           note: '発表スライドの根拠として後で参照したい統計資料',
@@ -646,7 +646,7 @@ export function buildUseCasePersonaPresets(localDate: string): UseCasePersonaPre
     {
       id: 'fashion_hobby',
       label: '④ ファッション・趣味・思い出（色合わせ見比べ＆記念撮影）',
-      badge: '見比べ＆趣味 (#17〜#22, #41〜#48)',
+      badge: '見比べ＆趣味',
       description:
         '撮影ポーズ集を「記念写真を撮影する」Projectへ結び、リップやコーデ投稿を「保存したもの同士を見比べる」体験として整理するパターン（口コミ収集・購入代行はしない境界線を遵守）',
       character: 'poko',
@@ -680,7 +680,7 @@ export function buildUseCasePersonaPresets(localDate: string): UseCasePersonaPre
         {
           id: 'uc-item-42',
           kind: 'SCREENSHOT',
-          rawText: '自然光で楽しそうに写る3人組のスマホ写真ポーズ集（#41, #42）',
+          rawText: '自然光で楽しそうに写る3人組のスマホ写真ポーズ集',
           title: '将来撮りたい写真のポーズ集',
           source: 'Instagram',
           note: '来週の記念撮影で試したい構図とポーズのスクショ',
@@ -705,7 +705,7 @@ export function buildUseCasePersonaPresets(localDate: string): UseCasePersonaPre
         {
           id: 'uc-item-17',
           kind: 'PHOTO',
-          rawText: 'ネイビーのカーディガンに白Tとシルバー小物を合わせたコーデ写真（#17, #18）',
+          rawText: 'ネイビーのカーディガンに白Tとシルバー小物を合わせたコーデ写真',
           title: '好きな色合わせのコーデ写真',
           source: 'カメラロール',
           note: '手持ちの服で似た雰囲気を試せる色合わせ',
@@ -730,7 +730,7 @@ export function buildUseCasePersonaPresets(localDate: string): UseCasePersonaPre
         {
           id: 'uc-item-22',
           kind: 'SCREENSHOT',
-          rawText: '透け感のあるコーラル系とローズ系のリップ色味比較スクショ（#22 境界線：見比べ体験）',
+          rawText: '透け感のあるコーラル系とローズ系のリップ色味比較スクショ',
           title: '複数のリップの色味投稿',
           source: 'Instagram',
           note: '※買い物代行ではなく、保存した手元の候補同士で色味を見比べるコレクション',
