@@ -22,14 +22,17 @@
 | 4 | Material Symbols Outlined | フォント（アイコン） | https://fonts.google.com/icons | Google | Apache License 2.0 | `public/fonts/` 各画面のアイコン | **あり** — 軸を opsz24/wght400/FILL0/GRAD0 に固定し、使用する24個だけにサブセット（2.3MB → 268KB） | 不要 | 収録しているアイコンは下の一覧のとおり。足すときは取り直しが必要 |
 | 5 | three.js r128 | OSS ライブラリ | https://github.com/mrdoob/three.js/tree/r128 | three.js authors (mrdoob) | MIT | `package.json` (`"three": "0.128.0"`) | なし | 不要 | r152 以降の color management 刷新で削除された API に `src/vendor/island.js` が依存しているため r128 に固定。詳細は `docs/decisions/002-web-stack.md` |
 | 6 | island.js（3Dの島とキャラクター） | 生成AIで作った素材 | — | Claude（Claude Design） | — | `src/vendor/island.js` | なし（生成物をそのまま使用） | 要確認 | Claude Design のデザインプロジェクト「Island mobile app form」で生成。three.js で島・キャラクター（ぽこ／ともり／ふみ）・カード・ステッカーを手続き的に描く。外部の画像素材は使っておらず、模様はすべてコード生成 |
-| 7 | 島アプリのUI（S1〜S9） | 生成AIで作った素材 | — | Claude / Gemini | — | `src/components/screens/`・`src/styles/styles.css` | — | 要確認 | デザインは Claude Design のプロトタイプ v2 をベースに、PC（右ドロワー）＆スマホ（ボトムシート）両対応の React + TypeScript コンポーネントとして実装 |
+| 7 | 島アプリのUI（S1〜S9） | 生成AIで作った素材 | — | Claude / Gemini | — | `src/presentation/screens/`・`src/presentation/styles/styles.css` | — | 要確認 | デザインは Claude Design のプロトタイプ v2 をベースに、PC（右ドロワー）＆スマホ（ボトムシート）両対応の React + TypeScript コンポーネントとして実装 |
 | 8 | アプリアイコン | 生成AIで作った素材 | — | Claude Code | — | `public/icons/*.png` | — | 要確認 | 外部素材を使わず、Python の zlib だけで PNG を直接生成。空色の地に島とドームを描いたもの |
 | 9 | React / React DOM | OSS ライブラリ | https://react.dev/ | Meta Platforms, Inc. | MIT | `src/` フロントエンド UI | なし | 不要 | ADR-002 / ADR-003 に基づき S1〜S9 の画面コンポーネントで使用 |
-| 10 | Firebase JS SDK / Firebase Functions / Genkit | OSS ライブラリ | https://firebase.google.com/ | Google | Apache License 2.0 | `src/infrastructure/firebase/`, `functions/` | なし | 不要 | Auth / Firestore / Storage / Cloud Functions で使用。Genkit は依存に含まれるが実行経路外 |
-| 11 | Zod | OSS ライブラリ | https://zod.dev/ | Colin McDonnell | MIT | `functions/src/schemas.ts` | なし | 不要 | Gemini 構造化出力の型検証で使用 |
+| 10 | Firebase JS SDK / Firebase Admin / Firebase Functions / Genkit | OSS ライブラリ | https://firebase.google.com/ | Google | Apache License 2.0 | `src/infrastructure/firebase/`, `functions/` | なし | 不要 | Auth / Firestore / Storage / Cloud Functions で使用。Genkit は依存に含まれるが実行経路外（提出後に削除を判断） |
+| 11 | Zod | OSS ライブラリ | https://zod.dev/ | Colin McDonnell | MIT | `functions/src/domain/schemas.ts`, `src/` | なし | 不要 | Gemini 構造化出力の型検証で使用 |
 | 12 | モフ（3D キャラクター） | 生成AIで作った素材 | — | RodinAI | 要確認 | `public/models/mofu.glb` 島の4人目のキャラクター | **あり** — glTF-Transform で Draco 圧縮・テクスチャを WebP に変換（23MB → 1.35MB） | 要確認 | RodinAI で生成。プロンプトの要旨: 要確認 |
 | 13 | モフのアイコン画像 | 生成AIで作った素材 | — | ChatGPT | 要確認 | `public/characters/mofu.png` 吹き出し・シートのキャラアイコン | なし | 要確認 | ChatGPT で生成。プロンプトの要旨: 要確認 |
 | 14 | Draco デコーダ（three r128 同梱） | OSS ライブラリ | https://github.com/google/draco | Google | Apache License 2.0 | `public/draco/` モフの GLB の展開 | なし（`node_modules/three/examples/js/libs/draco/gltf/` からコピー） | 不要 | ADR-006。GLTFLoader / DRACOLoader は three r128（#5）に同梱のもの |
+| 15 | Vite / @vitejs/plugin-react / Vitest / TypeScript | OSS ライブラリ（ビルド・開発ツール） | https://vite.dev/ ほか | Vite contributors / Evan You, Microsoft ほか | MIT / Apache License 2.0（TypeScript） | `package.json` devDependencies | なし | 不要 | 配信物には含まれないビルド・テスト用 |
+| 16 | デモ・サンプルデータ（連絡箱の参照データ） | 自作データ | — | 自チーム | — | `functions/src/infrastructure/discoverySearchAdapter.ts`, `src/domain/rules/proactiveDiscoveryRules.ts` | — | 不要 | 人物・会場・情報元はすべて架空。URL は `example.com` 配下。外部コンテンツや実在の個人情報は使っていない |
+| 17 | Gemini API（実行時の生成） | 外部 API | https://ai.google.dev/ | Google | Gemini API 利用規約 | `functions/src/infrastructure/geminiClient.ts` | — | 不要 | 保存物の読み取り・意図候補・提案文・埋め込みを生成。生成テキストは保存物ごとに実行時に作られ、素材としては同梱していない |
 
 ### Material Symbols で収録しているアイコン
 
