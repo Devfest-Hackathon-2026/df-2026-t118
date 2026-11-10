@@ -581,7 +581,7 @@ export const DiscoveryInboxSheet: React.FC<{
           <div className="inputpill">
             <input
               type="text"
-              placeholder="好きな曲や作品のメモ（任意：タオルケットは穏やかな）"
+              placeholder="好きな曲や作品のメモ（任意：『潮の記譜』）"
               value={artistHintInput}
               onChange={(e) => setArtistHintInput(e.target.value)}
             />
