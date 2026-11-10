@@ -52,3 +52,13 @@ npm-debug.log*
 
 # ===== ローカル作業用デザインアーカイブ =====
 _workspace-archive/
+
+# ===== 提出用リポジトリの初期 .gitignore から取り込み =====
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+*.pem
+*.key
+*.p12
+google-services.json
+GoogleService-Info.plist
