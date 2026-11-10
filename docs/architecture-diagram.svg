@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1640" height="980" viewBox="0 0 1640 980" font-family="'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5b6b7f"/>
+    </marker>
+    <marker id="ad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#c2821f"/>
+    </marker>
+    <linearGradient id="gem" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4285F4"/><stop offset="1" stop-color="#9B72CB"/>
+    </linearGradient>
+    <style>
+      .card { fill:#fff; stroke:#d6dbe3; stroke-width:1.5; }
+      .card-hi { fill:#f4f8ff; stroke:#4285F4; stroke-width:2.2; }
+      .name { font-size:17px; font-weight:600; fill:#1f2430; }
+      .sub  { font-size:12.5px; fill:#6b7280; }
+      .flow { stroke:#5b6b7f; stroke-width:2; fill:none; marker-end:url(#a); }
+      .flow-d { stroke:#c2821f; stroke-width:2; fill:none; stroke-dasharray:7 5; marker-end:url(#ad); }
+      .lbl { font-size:13px; fill:#44506a; }
+      .lbl-d { font-size:13px; fill:#9a6714; }
+      .num { font-size:12.5px; font-weight:700; fill:#fff; }
+    </style>
+  </defs>
+
+  <rect width="1640" height="980" fill="#fff"/>
+
+  <!-- title -->
+  <text x="56" y="52" font-size="25" font-weight="700" fill="#1f2430">集めたインスピレーションを Cloud Functions と Gemini が束ね、1 日 1 つの提案にして 3D の島に返す</text>
+  <text x="56" y="82" font-size="14" fill="#6b7280">島アプリ（hannari-hustlers）／ 実行基盤: Firebase Hosting ／ リージョン: asia-northeast1</text>
+
+  <!-- group -->
+  <rect x="60" y="250" width="1180" height="652" rx="14" fill="#f7f8fa" stroke="#c8cfdb" stroke-width="1.5" stroke-dasharray="8 6"/>
+  <text x="84" y="282" font-size="15" font-weight="600" fill="#5b6b7f">Google Cloud / Firebase（プロジェクト hannari-hustlers）</text>
+
+  <!-- browser -->
+  <rect x="560" y="112" width="360" height="92" rx="12" class="card"/>
+  <rect x="584" y="136" width="34" height="34" rx="8" fill="#5f6368"/>
+  <rect x="590" y="144" width="22" height="16" rx="3" fill="#fff"/><rect x="590" y="144" width="22" height="5" rx="2" fill="#c8cfdb"/>
+  <text x="630" y="152" class="name">ブラウザ / ホーム画面に追加した PWA</text>
+  <text x="630" y="174" class="sub">React + three.js の 3D の島 ・ 匿名 ID で利用</text>
+
+  <!-- Firebase Hosting -->
+  <rect x="430" y="300" width="330" height="108" rx="12" class="card"/>
+  <rect x="452" y="326" width="34" height="34" rx="8" fill="#FFA000"/>
+  <path d="M461 352 l8-18 l5 9 l5 -6 l5 15 z" fill="#fff"/>
+  <text x="498" y="342" class="name">Firebase Hosting</text>
+  <text x="498" y="363" class="sub">静的配信（CDN）・ manifest / アイコン</text>
+  <text x="498" y="383" class="sub">/api/* を Cloud Functions へ rewrite</text>
+
+  <!-- Firebase Authentication -->
+  <rect x="860" y="300" width="330" height="108" rx="12" class="card"/>
+  <rect x="882" y="326" width="34" height="34" rx="8" fill="#FFCA28"/>
+  <circle cx="896" cy="339" r="6" fill="#fff"/><rect x="893" y="347" width="6" height="9" rx="2" fill="#fff"/><rect x="899" y="350" width="8" height="3" rx="1.5" fill="#fff"/>
+  <text x="928" y="342" class="name">Firebase Authentication</text>
+  <text x="928" y="363" class="sub">匿名認証 ・ 登録なしで使い始められる</text>
+  <text x="928" y="383" class="sub">ID トークンで callable を保護</text>
+
+  <!-- Cloud Functions -->
+  <rect x="430" y="500" width="330" height="120" rx="12" class="card-hi"/>
+  <rect x="452" y="528" width="34" height="34" rx="8" fill="#FF6D00"/>
+  <rect x="460" y="536" width="8" height="8" rx="2" fill="#fff"/><rect x="472" y="536" width="8" height="8" rx="2" fill="#fff"/>
+  <rect x="460" y="548" width="8" height="8" rx="2" fill="#fff"/><rect x="472" y="548" width="8" height="8" rx="2" fill="#fff"/>
+  <text x="498" y="544" class="name">Cloud Functions for Firebase</text>
+  <text x="498" y="565" class="sub">callable 5 本 ・ Node 22 ・ 第 2 世代</text>
+  <text x="498" y="585" class="sub">読み取り → 意図 → 束ね → 提案のパイプライン</text>
+  <text x="498" y="605" class="sub">Zod で入出力を検証 ・ 日次クォータと上限</text>
+
+  <!-- Scheduled Functions -->
+  <rect x="430" y="720" width="330" height="108" rx="12" class="card"/>
+  <rect x="452" y="746" width="34" height="34" rx="8" fill="#4285F4"/>
+  <circle cx="469" cy="763" r="11" fill="none" stroke="#fff" stroke-width="2.4"/>
+  <path d="M469 756 v8 l6 3" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+  <text x="498" y="762" class="name">Scheduled Functions</text>
+  <text x="498" y="783" class="sub">夜 23:00 の整理 ・ 朝 08:00 の提案（JST）</text>
+  <text x="498" y="803" class="sub">アプリを開いていない間も島が育つ</text>
+
+  <!-- Secret Manager -->
+  <rect x="860" y="720" width="330" height="108" rx="12" class="card"/>
+  <rect x="882" y="746" width="34" height="34" rx="8" fill="#5f6368"/>
+  <rect x="891" y="762" width="16" height="12" rx="2.5" fill="#fff"/>
+  <path d="M894 762 v-4 a5 5 0 0 1 10 0 v4" fill="none" stroke="#fff" stroke-width="2.4"/>
+  <text x="928" y="762" class="name">Secret Manager</text>
+  <text x="928" y="783" class="sub">GEMINI_API_KEY を保管</text>
+  <text x="928" y="803" class="sub">キーをコードにもクライアントにも置かない</text>
+
+  <!-- Cloud Storage -->
+  <rect x="100" y="400" width="268" height="100" rx="12" class="card"/>
+  <rect x="122" y="424" width="34" height="34" rx="8" fill="#34A853"/>
+  <ellipse cx="139" cy="435" rx="11" ry="4.5" fill="#fff"/>
+  <path d="M128 435 v12 a11 4.5 0 0 0 22 0 v-12" fill="#fff"/>
+  <text x="168" y="440" class="name">Cloud Storage</text>
+  <text x="168" y="461" class="sub">スクリーンショット・画像</text>
+  <text x="168" y="481" class="sub">本人だけが読み書きできる</text>
+
+  <!-- Cloud Firestore -->
+  <rect x="100" y="620" width="268" height="112" rx="12" class="card"/>
+  <rect x="122" y="648" width="34" height="34" rx="8" fill="#FFA000"/>
+  <path d="M129 660 l10-6 l10 6 l-10 6 z" fill="#fff"/>
+  <path d="M129 670 l10-6 l10 6 l-10 6 z" fill="#fff" opacity="0.75"/>
+  <text x="168" y="662" class="name">Cloud Firestore</text>
+  <text x="168" y="683" class="sub">保存物 ・ 意図 ・ 束 ・ 提案 ・ 振り返り</text>
+  <text x="168" y="703" class="sub">ルールで users/{uid} を本人のみに限定</text>
+
+  <!-- Gemini API -->
+  <rect x="1300" y="500" width="292" height="132" rx="12" class="card"/>
+  <rect x="1322" y="528" width="34" height="34" rx="8" fill="url(#gem)"/>
+  <path d="M1339 533 l4 9 l9 4 l-9 4 l-4 9 l-4 -9 l-9 -4 l9 -4 z" fill="#fff"/>
+  <text x="1368" y="544" class="name">Gemini API</text>
+  <text x="1368" y="565" class="sub">Google AI Studio</text>
+  <text x="1322" y="596" class="sub">生成: gemini-3.8-flash（構造化出力）</text>
+  <text x="1322" y="616" class="sub">埋め込み: gemini-embedding-001</text>
+
+  <!-- (1)(3) browser -> hosting -->
+  <path d="M595 204 V300" class="flow"/>
+  <circle cx="595" cy="232" r="11" fill="#5b6b7f"/><text x="595" y="237" text-anchor="middle" class="num">1</text>
+  <text x="612" y="230" class="lbl">ページを取得（3D の島）</text>
+  <circle cx="595" cy="276" r="11" fill="#5b6b7f"/><text x="595" y="281" text-anchor="middle" class="num">3</text>
+  <text x="612" y="274" class="lbl">保存・提案の要求（ID トークン付き）</text>
+
+  <!-- (2) browser -> auth -->
+  <path d="M920 158 H1025 V300" class="flow"/>
+  <circle cx="1025" cy="212" r="11" fill="#5b6b7f"/><text x="1025" y="217" text-anchor="middle" class="num">2</text>
+  <text x="1042" y="216" class="lbl">匿名でサインイン</text>
+
+  <!-- (4) hosting -> functions -->
+  <path d="M595 408 V500" class="flow"/>
+  <circle cx="595" cy="454" r="11" fill="#5b6b7f"/><text x="595" y="459" text-anchor="middle" class="num">4</text>
+  <text x="612" y="450" class="lbl">/api/* を Cloud Functions へ</text>
+
+  <!-- (5) functions -> gemini -->
+  <path d="M760 548 H1300" class="flow"/>
+  <circle cx="1030" cy="548" r="11" fill="#5b6b7f"/><text x="1030" y="553" text-anchor="middle" class="num">5</text>
+  <text x="1048" y="540" class="lbl">読み取り・意図の 3 候補・埋め込み・提案文</text>
+
+  <!-- (6) functions -> secret manager -->
+  <path d="M700 620 V676 H1025 V720" class="flow-d"/>
+  <circle cx="1025" cy="698" r="11" fill="#c2821f"/><text x="1025" y="703" text-anchor="middle" class="num">6</text>
+  <text x="1042" y="670" class="lbl-d">キーを取得</text>
+
+  <!-- (7)(8) browser -> firestore / storage -->
+  <path d="M560 158 H32 V676 H100" class="flow"/>
+  <circle cx="32" cy="560" r="11" fill="#5b6b7f"/><text x="32" y="565" text-anchor="middle" class="num">7</text>
+  <text x="48" y="600" class="lbl">保存物の読み書き</text>
+  <text x="48" y="620" class="lbl">（本人のみ）</text>
+  <path d="M32 450 H100" class="flow"/>
+  <circle cx="66" cy="428" r="11" fill="#5b6b7f"/><text x="66" y="433" text-anchor="middle" class="num">8</text>
+  <text x="84" y="398" class="lbl">画像の保存</text>
+
+  <!-- (9) functions -> firestore -->
+  <path d="M430 560 H404 V660 H368" class="flow"/>
+  <circle cx="404" cy="610" r="11" fill="#5b6b7f"/><text x="404" y="615" text-anchor="middle" class="num">9</text>
+  <text x="300" y="594" class="lbl" text-anchor="end">束・提案の保存</text>
+
+  <!-- (10) scheduled -> firestore -->
+  <path d="M430 774 H392 V704 H368" class="flow-d"/>
+  <circle cx="392" cy="752" r="11" fill="#c2821f"/><text x="392" y="757" text-anchor="middle" class="num">10</text>
+  <text x="300" y="776" class="lbl-d" text-anchor="end">夜の束ね・朝の提案</text>
+
+  <!-- (11) scheduled -> gemini -->
+  <path d="M760 862 H1446 V632" class="flow-d"/>
+  <circle cx="1446" cy="750" r="11" fill="#c2821f"/><text x="1446" y="755" text-anchor="middle" class="num">11</text>
+  <text x="1430" y="812" class="lbl-d" text-anchor="end">提案文・要点の生成</text>
+
+  <!-- legend -->
+  <g transform="translate(60,942)">
+    <line x1="0" y1="0" x2="34" y2="0" stroke="#5b6b7f" stroke-width="2" marker-end="url(#a)"/>
+    <text x="44" y="5" font-size="13.5" fill="#44506a">ユーザーの操作をきっかけに動く（同期）</text>
+    <line x1="340" y1="0" x2="374" y2="0" stroke="#c2821f" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#ad)"/>
+    <text x="384" y="5" font-size="13.5" fill="#9a6714">アプリを開いていなくても動く（定時ジョブ・キーの取得）</text>
+    <text x="800" y="5" font-size="13.5" fill="#6b7280">※ 連絡箱の「外部検索」は検証用の固定データで、外部の検索サービスには接続していない</text>
+  </g>
+</svg>

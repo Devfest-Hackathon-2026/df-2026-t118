@@ -19,7 +19,7 @@
 | 会場 | 大阪（現地会場）。提出物は 5 点（プレゼンスライドを含む） |
 | チーム名 | hannari-hustlers |
 | メンバー | TODO: |
-| アプリケーション名 | 島アプリ（`public/manifest.webmanifest` の表記。副題「集めるを、動くに。」）。TODO: 正式名称を変える場合のみ更新 |
+| アプリケーション名 | 島アプリ（副題「保存したまま眠る トキメキな『いつか』を今日に」） |
 | カテゴリ | クリエイティブ |
 | GitHub リポジトリ URL | https://github.com/Devfest-Hackathon-2026/df-2026-t118 |
 
@@ -137,6 +137,11 @@ SNS 等で流れてくるインスピレーションをスクリーンショッ�
 
 ## 4. アーキテクチャ図
 
+![アーキテクチャ図](architecture-diagram.png)
+
+<details>
+<summary>図のソース（mermaid）</summary>
+
 ```mermaid
 flowchart LR
     U["ユーザー（ブラウザ / ホーム画面に追加した PWA）"]
@@ -165,10 +170,12 @@ flowchart LR
     S -->|"提案文・要点"| G
 ```
 
+</details>
+
 - **同期の起動契機**: 保存・「まとめる」（夜の整理）・「今日の一歩を見る」（朝の提案）の操作（図の 3〜5）
 - **非同期の起動契機**: Cloud Scheduler 由来の定時ジョブ（`scheduledNightOrganize` / `scheduledMorningPropose`）。アプリを開いていない間も島が育つ
 - 図に載せた Google サービスは 3.2 の表と一致している。能動発見（連絡箱）の外部検索は固定の参照データで、外部 API は呼んでいないため図に含めない
-- 指定テンプレート（Google Docs）へ転記するときは、この図を画像として書き出して貼る
+- 指定テンプレート（Google Docs）へ転記するときは [`architecture-diagram.png`](architecture-diagram.png)（3280×1960）を貼る。図のソースは [`architecture-diagram.svg`](architecture-diagram.svg)
 
 ## 5. プロジェクトをデプロイした URL
 
