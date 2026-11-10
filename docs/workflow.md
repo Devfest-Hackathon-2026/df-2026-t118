@@ -1,6 +1,7 @@
 # 開発フロー
 
 初めての人は先に [onboarding.md](onboarding.md) を読む。このファイルは運用の詳細を定める。
+この運用を**なぜそうしたか**と、トークン制限の中での工夫は [ai-driven-development.md](ai-driven-development.md) にまとめてある。
 
 ## イシュー
 
