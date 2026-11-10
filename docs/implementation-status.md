@@ -1,6 +1,6 @@
 # 実装状況と、するべきこと
 
-状態: 2026-11-08 時点。**本番（https://hannari-hustlers.web.app）で実際に動かして確認した結果**をもとに書いている。
+状態: 2026-11-08 時点。**本番（[https://hannari-hustlers.web.app](https://hannari-hustlers.web.app)）で実際に動かして確認した結果**をもとに書いている。
 
 このファイルの目的は 2 つ。
 
