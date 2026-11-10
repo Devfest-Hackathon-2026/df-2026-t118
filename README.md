@@ -2,7 +2,7 @@
 
 > SNS で見つけた「いつかやりたい」を、3D の自分の島に浮かべて、1 日 1 つだけ小さな一歩にしてくれる Web アプリ。
 
-**▶ 今すぐ試す: https://hannari-hustlers.web.app**（ログイン不要・スマホ / PC 対応・ホーム画面に追加できます）
+**▶ 今すぐ試す: [https://hannari-hustlers.web.app](https://hannari-hustlers.web.app)**（ログイン不要・スマホ / PC 対応・ホーム画面に追加できます）
 
 DevFest GDGoC Japan 2026 Hackathon 提出作品 / カテゴリ: **クリエイティブ** / チーム: hannari-hustlers
 
